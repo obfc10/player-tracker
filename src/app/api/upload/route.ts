@@ -271,11 +271,12 @@ export async function POST(request: NextRequest) {
             }
 
             // Create player snapshot with all 39 fields
+            const { lordId, ...snapshotData } = data; // Remove lordId from data
             await tx.playerSnapshot.create({
               data: {
                 playerId: data.lordId,
                 snapshotId: snapshot.id,
-                ...data
+                ...snapshotData
               }
             });
           }
