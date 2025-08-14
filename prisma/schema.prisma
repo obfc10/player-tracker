@@ -1,0 +1,162 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(VIEWER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  uploads   Upload[]
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+model Player {
+  lordId           String            @id
+  currentName      String
+  nameHistory      NameChange[]
+  allianceHistory  AllianceChange[]
+  snapshots        PlayerSnapshot[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  
+  @@index([currentName])
+}
+
+model NameChange {
+  id         String   @id @default(cuid())
+  player     Player   @relation(fields: [playerId], references: [lordId])
+  playerId   String
+  oldName    String
+  newName    String
+  detectedAt DateTime
+  
+  @@index([playerId])
+  @@index([detectedAt])
+}
+
+model AllianceChange {
+  id            String   @id @default(cuid())
+  player        Player   @relation(fields: [playerId], references: [lordId])
+  playerId      String
+  oldAlliance   String?
+  oldAllianceId String?
+  newAlliance   String?
+  newAllianceId String?
+  detectedAt    DateTime
+  
+  @@index([playerId])
+  @@index([detectedAt])
+}
+
+model PlayerSnapshot {
+  id                    String   @id @default(cuid())
+  player                Player   @relation(fields: [playerId], references: [lordId])
+  playerId              String
+  snapshot              Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshotId            String
+  
+  // Player identification (Columns 1-5)
+  name                  String   // Column 2
+  division              Int      // Column 3
+  allianceId            String?  // Column 4
+  allianceTag           String?  // Column 5
+  
+  // Power metrics (Columns 6-7, 17-20)
+  currentPower          String   // Column 6 - Stored as string to handle large numbers
+  power                 String   // Column 7
+  buildingPower         String   // Column 17
+  heroPower             String   // Column 18
+  legionPower           String   // Column 19
+  techPower             String   // Column 20
+  
+  // Combat statistics (Columns 8-16)
+  merits                String   // Column 8
+  unitsKilled           String   // Column 9
+  unitsDead             String   // Column 10
+  unitsHealed           String   // Column 11
+  t1KillCount           String   // Column 12
+  t2KillCount           String   // Column 13
+  t3KillCount           String   // Column 14
+  t4KillCount           String   // Column 15
+  t5KillCount           String   // Column 16
+  
+  // Battle statistics (Columns 21-24)
+  victories             Int      // Column 21
+  defeats               Int      // Column 22
+  citySieges            Int      // Column 23
+  scouted               Int      // Column 24
+  
+  // Alliance activity (Column 25, 36-37)
+  helpsGiven            Int      // Column 25
+  resourcesGiven        String   // Column 36
+  resourcesGivenCount   Int      // Column 37
+  
+  // Resources (Columns 26-35)
+  gold                  String   // Column 26
+  goldSpent             String   // Column 27
+  wood                  String   // Column 28
+  woodSpent             String   // Column 29
+  ore                   String   // Column 30
+  oreSpent              String   // Column 31
+  mana                  String   // Column 32
+  manaSpent             String   // Column 33
+  gems                  String   // Column 34
+  gemsSpent             String   // Column 35
+  
+  // Player info (Columns 38-39)
+  cityLevel             Int      // Column 38
+  faction               String?  // Column 39
+  
+  @@unique([playerId, snapshotId])
+  @@index([snapshotId])
+  @@index([playerId])
+}
+
+model Snapshot {
+  id          String           @id @default(cuid())
+  timestamp   DateTime
+  filename    String
+  kingdom     String
+  upload      Upload           @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  uploadId    String
+  players     PlayerSnapshot[]
+  createdAt   DateTime         @default(now())
+  
+  @@index([timestamp])
+  @@index([kingdom])
+}
+
+model Upload {
+  id         String       @id @default(cuid())
+  filename   String
+  uploadedBy User         @relation(fields: [userId], references: [id])
+  userId     String
+  snapshots  Snapshot[]
+  status     UploadStatus @default(PROCESSING)
+  error      String?
+  rowsProcessed Int       @default(0)
+  createdAt  DateTime     @default(now())
+  
+  @@index([userId])
+  @@index([status])
+}
+
+enum UploadStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}

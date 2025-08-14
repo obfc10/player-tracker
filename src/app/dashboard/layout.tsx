@@ -1,0 +1,149 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
+import { 
+  LayoutDashboard, 
+  Users, 
+  TrendingUp, 
+  Trophy, 
+  BarChart3,
+  Upload,
+  LogOut,
+  Menu,
+  X,
+  GitBranch,
+  UserCheck
+} from 'lucide-react';
+
+export default function DashboardLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const { data: session } = useSession();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const navigation = [
+    { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
+    { name: 'Players', href: '/dashboard/players', icon: Users },
+    { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
+    { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
+    { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
+    { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
+    { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck }
+  ];
+
+  const adminNavigation = [
+    { name: 'Upload Data', href: '/dashboard/upload', icon: Upload }
+  ];
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-900">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-800 transition-all duration-300 flex-shrink-0`}>
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            <h1 className={`text-xl font-bold text-white transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+              Player Tracker
+            </h1>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                    ${isActive 
+                      ? 'bg-gray-900 text-white' 
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                  `}
+                  title={!sidebarOpen ? item.name : undefined}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className={`ml-3 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                    {item.name}
+                  </span>
+                </Link>
+              );
+            })}
+
+            {/* Admin Section */}
+            {session?.user?.role === 'ADMIN' && (
+              <>
+                <div className="my-4 border-t border-gray-700" />
+                <div className={`px-2 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                  Admin
+                </div>
+                {adminNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`
+                        flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                        ${isActive 
+                          ? 'bg-gray-900 text-white' 
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                      `}
+                      title={!sidebarOpen ? item.name : undefined}
+                    >
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <span className={`ml-3 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                        {item.name}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </>
+            )}
+          </nav>
+
+          {/* User Section */}
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center">
+              <div className={`flex-1 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                <p className="text-sm text-white truncate">{session?.user?.name || 'User'}</p>
+                <p className="text-xs text-gray-400 capitalize">{session?.user?.role?.toLowerCase() || 'viewer'}</p>
+              </div>
+              <button 
+                onClick={handleSignOut}
+                className="text-gray-400 hover:text-white transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden">
+        <main className="h-full overflow-auto">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
