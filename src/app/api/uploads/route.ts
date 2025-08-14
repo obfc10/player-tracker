@@ -38,7 +38,7 @@ export async function GET() {
       take: 50 // Last 50 uploads
     });
 
-    const uploadsWithStats = uploads.map(upload => ({
+    const uploadsWithStats = uploads.map((upload: any) => ({
       id: upload.id,
       filename: upload.filename,
       status: upload.status,
@@ -46,7 +46,7 @@ export async function GET() {
       rowsProcessed: upload.rowsProcessed,
       createdAt: upload.createdAt,
       uploadedBy: upload.uploadedBy,
-      snapshots: upload.snapshots.map(snapshot => ({
+      snapshots: upload.snapshots.map((snapshot: any) => ({
         id: snapshot.id,
         timestamp: snapshot.timestamp,
         kingdom: snapshot.kingdom,

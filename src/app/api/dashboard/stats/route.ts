@@ -31,13 +31,13 @@ export async function GET() {
     // Get unique alliances
     const alliances = new Set(
       latestSnapshot.players
-        .map(p => p.allianceTag)
-        .filter(tag => tag && tag.trim() !== '')
+        .map((p: any) => p.allianceTag)
+        .filter((tag: any) => tag && tag.trim() !== '')
     );
     const activeAlliances = alliances.size;
 
     // Calculate total kingdom power
-    const totalPower = latestSnapshot.players.reduce((sum, player) => {
+    const totalPower = latestSnapshot.players.reduce((sum: number, player: any) => {
       return sum + parseInt(player.currentPower || '0');
     }, 0);
 
@@ -56,10 +56,10 @@ export async function GET() {
 
     // Get alliance distribution for charts
     const allianceDistribution = Array.from(alliances).map(alliance => {
-      const memberCount = latestSnapshot.players.filter(p => p.allianceTag === alliance).length;
+      const memberCount = latestSnapshot.players.filter((p: any) => p.allianceTag === alliance).length;
       const alliancePower = latestSnapshot.players
-        .filter(p => p.allianceTag === alliance)
-        .reduce((sum, player) => sum + parseInt(player.currentPower || '0'), 0);
+        .filter((p: any) => p.allianceTag === alliance)
+        .reduce((sum: number, player: any) => sum + parseInt(player.currentPower || '0'), 0);
       
       return {
         name: alliance,
@@ -70,9 +70,9 @@ export async function GET() {
 
     // Get top players
     const topPlayers = latestSnapshot.players
-      .sort((a, b) => parseInt(b.currentPower || '0') - parseInt(a.currentPower || '0'))
+      .sort((a: any, b: any) => parseInt(b.currentPower || '0') - parseInt(a.currentPower || '0'))
       .slice(0, 10)
-      .map(player => ({
+      .map((player: any) => ({
         lordId: player.playerId,
         name: player.name,
         currentPower: parseInt(player.currentPower || '0'),
@@ -88,7 +88,7 @@ export async function GET() {
       { label: '100M+', min: 100000000, max: Infinity, count: 0 }
     ];
 
-    latestSnapshot.players.forEach(player => {
+    latestSnapshot.players.forEach((player: any) => {
       const power = parseInt(player.currentPower || '0');
       for (const range of powerRanges) {
         if (power >= range.min && power < range.max) {

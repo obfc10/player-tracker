@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate additional metrics for display
-    const playersWithMetrics = players.map((playerSnapshot, index) => {
+    const playersWithMetrics = players.map((playerSnapshot: any, index: number) => {
       const unitsKilled = parseInt(playerSnapshot.unitsKilled || '0');
       const unitsDead = parseInt(playerSnapshot.unitsDead || '0');
       const victories = playerSnapshot.victories || 0;
@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
       sortBy,
       order,
       alliance,
-      alliances: alliances.map(a => a.allianceTag).filter(Boolean),
+      alliances: alliances.map((a: any) => a.allianceTag).filter(Boolean),
       snapshotInfo: {
         id: latestSnapshot.id,
         timestamp: latestSnapshot.timestamp,

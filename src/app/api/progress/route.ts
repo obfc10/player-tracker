@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
             lordId: player.lordId,
             currentName: player.currentName
           },
-          snapshots: snapshots.map(s => ({
+          snapshots: snapshots.map((s: any) => ({
             timestamp: s.snapshot.timestamp,
             currentPower: parseInt(s.currentPower),
             unitsKilled: parseInt(s.unitsKilled),

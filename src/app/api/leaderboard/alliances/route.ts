@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Group players by alliance and calculate metrics
     const allianceMap = new Map();
 
-    players.forEach(player => {
+    players.forEach((player: any) => {
       const allianceTag = player.allianceTag;
       if (!allianceTag) return;
 

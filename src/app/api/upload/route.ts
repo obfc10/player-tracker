@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: any) => {
           for (const data of batch) {
             // Upsert player
             const player = await tx.player.upsert({

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         error: 'Not enough snapshots for comparison',
         gainers: [],
         losers: [],
-        snapshots: snapshots.map(s => ({
+        snapshots: snapshots.map((s: any) => ({
           id: s.id,
           timestamp: s.timestamp,
           kingdom: s.kingdom,
@@ -44,14 +44,14 @@ export async function GET(request: NextRequest) {
         // Find snapshot closest to 7 days ago
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
-        fromSnapshot = snapshots.find(s => new Date(s.timestamp) <= weekAgo) || snapshots[snapshots.length - 1];
+        fromSnapshot = snapshots.find((s: any) => new Date(s.timestamp) <= weekAgo) || snapshots[snapshots.length - 1];
         break;
       case 'custom':
         if (!fromDate || !toDate) {
           return NextResponse.json({ error: 'From and to dates required for custom comparison' }, { status: 400 });
         }
-        toSnapshot = snapshots.find(s => s.id === toDate) || snapshots[0];
-        fromSnapshot = snapshots.find(s => s.id === fromDate) || snapshots[1];
+        toSnapshot = snapshots.find((s: any) => s.id === toDate) || snapshots[0];
+        fromSnapshot = snapshots.find((s: any) => s.id === fromDate) || snapshots[1];
         break;
       default:
         toSnapshot = snapshots[0];
@@ -84,13 +84,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Create player maps for easier lookup
-    const fromPlayerMap = new Map(fromPlayers.map(p => [p.playerId, p]));
-    const toPlayerMap = new Map(toPlayers.map(p => [p.playerId, p]));
+    const fromPlayerMap = new Map(fromPlayers.map((p: any) => [p.playerId, p]));
+    const toPlayerMap = new Map(toPlayers.map((p: any) => [p.playerId, p]));
 
     // Calculate changes for players present in both snapshots
     const changes: any[] = [];
 
-    toPlayers.forEach(toPlayer => {
+    toPlayers.forEach((toPlayer: any) => {
       const fromPlayer = fromPlayerMap.get(toPlayer.playerId);
       if (!fromPlayer) return; // Skip new players
 
@@ -207,13 +207,13 @@ export async function GET(request: NextRequest) {
           filename: toSnapshot.filename
         }
       },
-      availableSnapshots: snapshots.map(s => ({
+      availableSnapshots: snapshots.map((s: any) => ({
         id: s.id,
         timestamp: s.timestamp,
         kingdom: s.kingdom,
         filename: s.filename
       })),
-      alliances: alliances.map(a => a.allianceTag).filter(Boolean),
+      alliances: alliances.map((a: any) => a.allianceTag).filter(Boolean),
       alliance: allianceFilter
     });
 

@@ -156,16 +156,16 @@ function prepareChartData(snapshots: any[]) {
   const reversed = [...snapshots].reverse();
   
   return {
-    powerTrend: reversed.map(s => ({
+    powerTrend: reversed.map((s: any) => ({
       date: new Date(s.snapshot.timestamp).toLocaleDateString(),
       power: parseInt(s.currentPower)
     })),
-    combatTrend: reversed.map(s => ({
+    combatTrend: reversed.map((s: any) => ({
       date: new Date(s.snapshot.timestamp).toLocaleDateString(),
       kills: parseInt(s.unitsKilled),
       deaths: parseInt(s.unitsDead)
     })),
-    resourceTrend: reversed.map(s => ({
+    resourceTrend: reversed.map((s: any) => ({
       date: new Date(s.snapshot.timestamp).toLocaleDateString(),
       gold: parseInt(s.gold),
       wood: parseInt(s.wood),
@@ -173,7 +173,7 @@ function prepareChartData(snapshots: any[]) {
       mana: parseInt(s.mana),
       gems: parseInt(s.gems)
     })),
-    activityTrend: reversed.map(s => ({
+    activityTrend: reversed.map((s: any) => ({
       date: new Date(s.snapshot.timestamp).toLocaleDateString(),
       helps: s.helpsGiven,
       sieges: s.citySieges,

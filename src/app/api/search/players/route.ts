@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const searchResults = players.map(player => {
+    const searchResults = players.map((player: any) => {
       const latestSnapshot = player.snapshots[0];
       return {
         lordId: player.lordId,

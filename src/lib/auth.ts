@@ -1,7 +1,12 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+
+// Lazy import prisma to avoid database connection during build
+const getPrisma = async () => {
+  const { prisma } = await import('@/lib/db');
+  return prisma;
+};
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,6 +20,9 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         
         try {
+          // Only connect to database when actually authorizing
+          const prisma = await getPrisma();
+          
           const user = await prisma.user.findUnique({
             where: { email: credentials.email }
           });
@@ -58,5 +66,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-build'
 };
