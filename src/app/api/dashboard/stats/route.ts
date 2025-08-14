@@ -25,7 +25,17 @@ export async function GET() {
         activeAlliances: 0,
         totalPower: 0,
         lastUpdate: null,
-        recentUploads: 0
+        recentUploads: 0,
+        allianceDistribution: [],
+        topPlayers: [],
+        powerDistribution: [
+          { label: '0-1M', count: 0 },
+          { label: '1M-10M', count: 0 },
+          { label: '10M-50M', count: 0 },
+          { label: '50M-100M', count: 0 },
+          { label: '100M+', count: 0 }
+        ],
+        snapshotInfo: null
       });
     }
 
