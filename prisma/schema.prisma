@@ -38,7 +38,7 @@ model Player {
 
 model NameChange {
   id         String   @id @default(cuid())
-  player     Player   @relation(fields: [playerId], references: [lordId])
+  player     Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
   playerId   String
   oldName    String
   newName    String
@@ -50,7 +50,7 @@ model NameChange {
 
 model AllianceChange {
   id            String   @id @default(cuid())
-  player        Player   @relation(fields: [playerId], references: [lordId])
+  player        Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
   playerId      String
   oldAlliance   String?
   oldAllianceId String?
@@ -64,7 +64,7 @@ model AllianceChange {
 
 model PlayerSnapshot {
   id                    String   @id @default(cuid())
-  player                Player   @relation(fields: [playerId], references: [lordId])
+  player                Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
   playerId              String
   snapshot              Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
   snapshotId            String

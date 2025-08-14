@@ -1,20 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Shield, 
-  Users, 
-  Zap, 
-  Sword, 
-  Trophy, 
+  Shield,
+  Users,
+  Zap,
+  Sword,
+  Trophy,
   Crown,
-  ChevronUp,
-  ChevronDown,
-  Target,
-  BarChart3
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Target
 } from 'lucide-react';
 
 interface Alliance {
@@ -43,36 +41,34 @@ interface AllianceLeaderboardData {
   totalAlliances: number;
   sortBy: string;
   order: string;
+  snapshotInfo: {
+    id: string;
+    timestamp: string;
+    kingdom: string;
+    filename: string;
+  };
 }
 
 interface AllianceLeaderboardProps {
   data: AllianceLeaderboardData | null;
   loading: boolean;
   onSort: (metric: string) => void;
-  onAllianceClick?: (alliance: Alliance) => void;
+  onAllianceClick: (alliance: Alliance) => void;
 }
 
-const allianceMetrics = [
-  { key: 'totalPower', label: 'Total Power', icon: Zap, format: 'number' },
-  { key: 'memberCount', label: 'Members', icon: Users, format: 'number' },
-  { key: 'averagePower', label: 'Avg Power', icon: BarChart3, format: 'number' },
-  { key: 'totalKills', label: 'Total Kills', icon: Sword, format: 'number' },
-  { key: 'totalMerits', label: 'Total Merits', icon: Trophy, format: 'number' },
-  { key: 'killDeathRatio', label: 'K/D Ratio', icon: Target, format: 'ratio' },
-  { key: 'winRate', label: 'Win Rate', icon: Crown, format: 'percentage' },
-  { key: 'averageLevel', label: 'Avg Level', icon: Shield, format: 'number' }
+const columns = [
+  { key: 'rank', label: 'Rank', icon: Crown, sortable: false },
+  { key: 'tag', label: 'Alliance', icon: Shield, sortable: true },
+  { key: 'memberCount', label: 'Members', icon: Users, sortable: true },
+  { key: 'totalPower', label: 'Total Power', icon: Zap, sortable: true },
+  { key: 'averagePower', label: 'Avg Power', icon: Zap, sortable: true },
+  { key: 'totalKills', label: 'Total Kills', icon: Sword, sortable: true },
+  { key: 'killDeathRatio', label: 'K/D Ratio', icon: Target, sortable: true },
+  { key: 'totalMerits', label: 'Total Merits', icon: Trophy, sortable: true },
+  { key: 'winRate', label: 'Win Rate', icon: Trophy, sortable: true },
 ];
 
-export function AllianceLeaderboard({ 
-  data, 
-  loading, 
-  onSort, 
-  onAllianceClick 
-}: AllianceLeaderboardProps) {
-  const [selectedMetrics, setSelectedMetrics] = useState([
-    'totalPower', 'memberCount', 'averagePower', 'totalKills', 'killDeathRatio'
-  ]);
-
+export function AllianceLeaderboard({ data, loading, onSort, onAllianceClick }: AllianceLeaderboardProps) {
   const formatNumber = (num: number) => {
     if (num >= 1000000000) {
       return (num / 1000000000).toFixed(1) + 'B';
@@ -86,62 +82,35 @@ export function AllianceLeaderboard({
     return num.toLocaleString();
   };
 
-  const formatValue = (value: any, format: string) => {
-    switch (format) {
-      case 'number':
-        return typeof value === 'number' ? formatNumber(value) : value;
-      case 'ratio':
-        return value === 'N/A' ? 'N/A' : value;
-      case 'percentage':
-        return value === 'N/A' ? 'N/A' : `${value}%`;
-      default:
-        return value;
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-6 h-6 text-yellow-400" />;
-      case 2:
-        return <Crown className="w-6 h-6 text-gray-300" />;
-      case 3:
-        return <Crown className="w-6 h-6 text-amber-600" />;
-      default:
-        return (
-          <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-            <span className="text-gray-300 text-sm font-bold">#{rank}</span>
-          </div>
-        );
-    }
-  };
-
-  const getSortIcon = (metric: string) => {
-    if (data?.sortBy !== metric) {
-      return <ChevronDown className="w-4 h-4 text-gray-500" />;
+  const getSortIcon = (column: string) => {
+    if (!data || data.sortBy !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-500" />;
     }
     return data.order === 'asc' ? 
-      <ChevronUp className="w-4 h-4 text-purple-400" /> :
-      <ChevronDown className="w-4 h-4 text-purple-400" />;
+      <ArrowUp className="w-4 h-4 text-purple-400" /> : 
+      <ArrowDown className="w-4 h-4 text-purple-400" />;
   };
 
-  const toggleMetric = (metric: string) => {
-    if (selectedMetrics.includes(metric)) {
-      if (selectedMetrics.length > 3) {
-        setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
-      }
-    } else {
-      if (selectedMetrics.length < 6) {
-        setSelectedMetrics([...selectedMetrics, metric]);
-      }
-    }
+  const getRankBadgeColor = (rank: number) => {
+    if (rank === 1) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+    if (rank === 2) return 'bg-gray-400/20 text-gray-300 border-gray-400/30';
+    if (rank === 3) return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+    if (rank <= 10) return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+    return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
+  };
+
+  const getMemberCountColor = (count: number) => {
+    if (count >= 100) return 'text-green-400';
+    if (count >= 50) return 'text-yellow-400';
+    if (count >= 25) return 'text-orange-400';
+    return 'text-red-400';
   };
 
   if (loading) {
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8">
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
           </div>
         </CardContent>
@@ -161,164 +130,108 @@ export function AllianceLeaderboard({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Metric Selection */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white text-sm">
-            Select Metrics to Display (3-6 metrics)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {allianceMetrics.map(metric => {
-              const isSelected = selectedMetrics.includes(metric.key);
-              const Icon = metric.icon;
-              return (
-                <Button
-                  key={metric.key}
-                  variant={isSelected ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleMetric(metric.key)}
-                  disabled={!isSelected && selectedMetrics.length >= 6}
-                  className="flex items-center gap-2"
-                >
-                  <Icon className="w-4 h-4" />
-                  {metric.label}
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Alliance Cards View */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {data.alliances.map((alliance) => (
-          <Card 
-            key={alliance.tag} 
-            className={`
-              bg-gray-800 border-gray-700 cursor-pointer transition-all duration-200 hover:border-purple-500 hover:shadow-lg
-              ${alliance.rank <= 3 ? 'ring-2 ring-purple-500/30' : ''}
-            `}
-            onClick={() => onAllianceClick?.(alliance)}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {getRankIcon(alliance.rank)}
-                  <div>
-                    <CardTitle className="text-white text-lg">{alliance.tag}</CardTitle>
-                    <p className="text-gray-400 text-sm">
-                      {alliance.memberCount} members
-                    </p>
-                  </div>
-                </div>
-                {alliance.rank <= 3 && (
-                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
-                    Top {alliance.rank}
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            
-            <CardContent className="space-y-4">
-              {/* Key Metrics Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {selectedMetrics.slice(0, 4).map(metricKey => {
-                  const metric = allianceMetrics.find(m => m.key === metricKey);
-                  const value = alliance[metricKey as keyof Alliance];
-                  if (!metric) return null;
-                  
-                  const Icon = metric.icon;
-                  
+    <Card className="bg-gray-800 border-gray-700">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center justify-between">
+          <span>Alliance Rankings</span>
+          <span className="text-sm text-gray-400 font-normal">
+            {data.totalAlliances} alliances
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-900">
+              <tr>
+                {columns.map(column => {
+                  const Icon = column.icon;
                   return (
-                    <div key={metricKey} className="p-3 bg-gray-700 rounded-lg">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Icon className="w-4 h-4 text-purple-400" />
-                        <span className="text-xs text-gray-400">{metric.label}</span>
+                    <th
+                      key={column.key}
+                      className={`px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${
+                        column.sortable ? 'cursor-pointer hover:bg-gray-800' : ''
+                      }`}
+                      onClick={() => column.sortable && onSort(column.key)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4" />
+                        {column.label}
+                        {column.sortable && getSortIcon(column.key)}
                       </div>
-                      <p className="text-white font-bold">
-                        {formatValue(value, metric.format)}
-                      </p>
-                    </div>
+                    </th>
                   );
                 })}
-              </div>
-
-              {/* Top Player */}
-              <div className="p-3 bg-gray-700 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <Crown className="w-4 h-4 text-yellow-400" />
-                  <span className="text-xs text-gray-400">Top Player</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-white font-medium truncate">
-                    {alliance.topPlayer.name}
-                  </span>
-                  <span className="text-purple-400 text-sm">
-                    {formatNumber(alliance.topPlayer.power)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Additional Metrics */}
-              {selectedMetrics.length > 4 && (
-                <div className="space-y-2">
-                  {selectedMetrics.slice(4).map(metricKey => {
-                    const metric = allianceMetrics.find(m => m.key === metricKey);
-                    const value = alliance[metricKey as keyof Alliance];
-                    if (!metric) return null;
-                    
-                    const Icon = metric.icon;
-                    
-                    return (
-                      <div key={metricKey} className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-400">{metric.label}:</span>
-                        </div>
-                        <span className="text-white font-medium">
-                          {formatValue(value, metric.format)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Sort Controls */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-300">Sort by:</span>
-            <div className="flex flex-wrap gap-2">
-              {allianceMetrics.map(metric => {
-                const Icon = metric.icon;
-                const isActive = data.sortBy === metric.key;
-                
-                return (
-                  <Button
-                    key={metric.key}
-                    variant={isActive ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onSort(metric.key)}
-                    className="flex items-center gap-2"
-                  >
-                    <Icon className="w-4 h-4" />
-                    {metric.label}
-                    {isActive && getSortIcon(metric.key)}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  Top Player
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-700">
+              {data.alliances.map(alliance => (
+                <tr
+                  key={alliance.tag}
+                  onClick={() => onAllianceClick(alliance)}
+                  className="hover:bg-gray-700 cursor-pointer transition-colors"
+                >
+                  <td className="px-4 py-3 text-sm">
+                    <Badge className={getRankBadgeColor(alliance.rank)}>
+                      #{alliance.rank}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                      <span className="text-white font-medium">{alliance.tag}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={getMemberCountColor(alliance.memberCount)}>
+                      {alliance.memberCount}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {formatNumber(alliance.totalPower)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {formatNumber(alliance.averagePower)}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {formatNumber(alliance.totalKills)}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={
+                      typeof alliance.killDeathRatio === 'number' && alliance.killDeathRatio > 1 ? 'text-green-400' :
+                      typeof alliance.killDeathRatio === 'number' && alliance.killDeathRatio < 1 ? 'text-red-400' : 'text-gray-300'
+                    }>
+                      {alliance.killDeathRatio}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {formatNumber(alliance.totalMerits)}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={
+                      typeof alliance.winRate === 'number' && alliance.winRate > 50 ? 'text-green-400' :
+                      typeof alliance.winRate === 'number' && alliance.winRate < 50 ? 'text-red-400' : 'text-gray-300'
+                    }>
+                      {alliance.winRate}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <div>
+                      <p className="text-white font-medium">{alliance.topPlayer.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {formatNumber(alliance.topPlayer.power)} power
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

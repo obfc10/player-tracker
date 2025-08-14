@@ -5,18 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
-  ChevronUp, 
-  ChevronDown, 
-  Crown, 
-  User, 
-  Sword, 
-  Shield, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronsLeft, 
+  ChevronsRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Users,
+  Crown,
   Zap,
-  Trophy,
-  Target,
-  Heart,
-  ChevronLeft,
-  ChevronRight
+  Sword,
+  Shield,
+  Trophy
 } from 'lucide-react';
 
 interface Player {
@@ -52,6 +53,12 @@ interface LeaderboardData {
   order: string;
   alliance: string;
   alliances: string[];
+  snapshotInfo: {
+    id: string;
+    timestamp: string;
+    kingdom: string;
+    filename: string;
+  };
 }
 
 interface LeaderboardTableProps {
@@ -60,20 +67,20 @@ interface LeaderboardTableProps {
   onSort: (metric: string) => void;
   onAllianceFilter: (alliance: string) => void;
   onPageChange: (page: number) => void;
-  onPlayerClick?: (player: Player) => void;
+  onPlayerClick: (player: Player) => void;
 }
 
-const metrics = [
-  { key: 'currentPower', label: 'Power', icon: Zap, format: 'number' },
-  { key: 'unitsKilled', label: 'Kills', icon: Sword, format: 'number' },
-  { key: 'unitsDead', label: 'Deaths', icon: Shield, format: 'number' },
-  { key: 'merits', label: 'Merits', icon: Trophy, format: 'number' },
-  { key: 'killDeathRatio', label: 'K/D', icon: Target, format: 'ratio' },
-  { key: 'victories', label: 'Wins', icon: Crown, format: 'number' },
-  { key: 'defeats', label: 'Losses', icon: Heart, format: 'number' },
-  { key: 'winRate', label: 'Win %', icon: Trophy, format: 'percentage' },
-  { key: 'cityLevel', label: 'Level', icon: User, format: 'number' },
-  { key: 'helpsGiven', label: 'Helps', icon: Heart, format: 'number' }
+const columns = [
+  { key: 'rank', label: 'Rank', icon: Crown, sortable: false },
+  { key: 'name', label: 'Player', icon: Users, sortable: true },
+  { key: 'allianceTag', label: 'Alliance', icon: Shield, sortable: false },
+  { key: 'currentPower', label: 'Power', icon: Zap, sortable: true },
+  { key: 'merits', label: 'Merits', icon: Trophy, sortable: true },
+  { key: 'unitsKilled', label: 'Kills', icon: Sword, sortable: true },
+  { key: 'killDeathRatio', label: 'K/D', icon: Sword, sortable: true },
+  { key: 'victories', label: 'Wins', icon: Crown, sortable: true },
+  { key: 'winRate', label: 'Win %', icon: Trophy, sortable: true },
+  { key: 'cityLevel', label: 'Level', icon: Users, sortable: true },
 ];
 
 export function LeaderboardTable({ 
@@ -84,9 +91,7 @@ export function LeaderboardTable({
   onPageChange, 
   onPlayerClick 
 }: LeaderboardTableProps) {
-  const [selectedMetrics, setSelectedMetrics] = useState([
-    'currentPower', 'unitsKilled', 'unitsDead', 'merits', 'killDeathRatio'
-  ]);
+  const [selectedColumns, setSelectedColumns] = useState(new Set(['rank', 'name', 'allianceTag', 'currentPower', 'merits', 'unitsKilled']));
 
   const formatNumber = (num: number) => {
     if (num >= 1000000000) {
@@ -101,58 +106,43 @@ export function LeaderboardTable({
     return num.toLocaleString();
   };
 
-  const formatValue = (value: any, format: string) => {
-    switch (format) {
-      case 'number':
-        return typeof value === 'number' ? formatNumber(value) : value;
-      case 'ratio':
-        return value === 'N/A' ? 'N/A' : value;
-      case 'percentage':
-        return value === 'N/A' ? 'N/A' : `${value}%`;
-      default:
-        return value;
-    }
-  };
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="w-5 h-5 text-yellow-400" />;
-      case 2:
-        return <Crown className="w-5 h-5 text-gray-300" />;
-      case 3:
-        return <Crown className="w-5 h-5 text-amber-600" />;
-      default:
-        return <span className="text-gray-400">#{rank}</span>;
-    }
-  };
-
-  const getSortIcon = (metric: string) => {
-    if (data?.sortBy !== metric) {
-      return <ChevronDown className="w-4 h-4 text-gray-500" />;
+  const getSortIcon = (column: string) => {
+    if (!data || data.sortBy !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-500" />;
     }
     return data.order === 'asc' ? 
-      <ChevronUp className="w-4 h-4 text-purple-400" /> :
-      <ChevronDown className="w-4 h-4 text-purple-400" />;
+      <ArrowUp className="w-4 h-4 text-purple-400" /> : 
+      <ArrowDown className="w-4 h-4 text-purple-400" />;
   };
 
-  const toggleMetric = (metric: string) => {
-    if (selectedMetrics.includes(metric)) {
-      if (selectedMetrics.length > 3) {
-        setSelectedMetrics(selectedMetrics.filter(m => m !== metric));
+  const getRankBadgeColor = (rank: number) => {
+    if (rank === 1) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30';
+    if (rank === 2) return 'bg-gray-400/20 text-gray-300 border-gray-400/30';
+    if (rank === 3) return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+    if (rank <= 10) return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+    if (rank <= 50) return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+    return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
+  };
+
+  const toggleColumn = (columnKey: string) => {
+    const newSelected = new Set(selectedColumns);
+    if (newSelected.has(columnKey)) {
+      if (newSelected.size > 3) { // Keep at least 3 columns
+        newSelected.delete(columnKey);
       }
     } else {
-      if (selectedMetrics.length < 8) {
-        setSelectedMetrics([...selectedMetrics, metric]);
-      }
+      newSelected.add(columnKey);
     }
+    setSelectedColumns(newSelected);
   };
+
+  const visibleColumns = columns.filter(col => selectedColumns.has(col.key));
 
   if (loading) {
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8">
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
           </div>
         </CardContent>
@@ -164,8 +154,8 @@ export function LeaderboardTable({
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8 text-center text-gray-400">
-          <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No leaderboard data available</p>
+          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No players found for the current filters</p>
         </CardContent>
       </Card>
     );
@@ -173,86 +163,75 @@ export function LeaderboardTable({
 
   return (
     <div className="space-y-4">
-      {/* Metric Selection */}
+      {/* Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Alliance Filter */}
+        <div className="flex items-center gap-2">
+          <select
+            value={data.alliance}
+            onChange={(e) => onAllianceFilter(e.target.value)}
+            className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+          >
+            <option value="all">All Alliances</option>
+            {data.alliances.map(alliance => (
+              <option key={alliance} value={alliance}>{alliance}</option>
+            ))}
+          </select>
+          {data.alliance !== 'all' && (
+            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+              {data.alliance}
+            </Badge>
+          )}
+        </div>
+
+        {/* Column Selector */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-400">Columns:</span>
+          <div className="flex flex-wrap gap-1">
+            {columns.map(column => (
+              <Button
+                key={column.key}
+                variant={selectedColumns.has(column.key) ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => toggleColumn(column.key)}
+                className="text-xs"
+              >
+                {column.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
       <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="text-white text-sm">
-            Select Metrics to Display (3-8 metrics)
+          <CardTitle className="text-white flex items-center justify-between">
+            <span>Player Rankings</span>
+            <span className="text-sm text-gray-400 font-normal">
+              {data.totalPlayers.toLocaleString()} players
+            </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {metrics.map(metric => {
-              const isSelected = selectedMetrics.includes(metric.key);
-              const Icon = metric.icon;
-              return (
-                <Button
-                  key={metric.key}
-                  variant={isSelected ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => toggleMetric(metric.key)}
-                  disabled={!isSelected && selectedMetrics.length >= 8}
-                  className="flex items-center gap-2"
-                >
-                  <Icon className="w-4 h-4" />
-                  {metric.label}
-                </Button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Alliance Filter */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <label className="text-sm text-gray-300">Filter by Alliance:</label>
-            <select
-              value={data.alliance}
-              onChange={(e) => onAllianceFilter(e.target.value)}
-              className="px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            >
-              <option value="all">All Alliances</option>
-              {data.alliances.map(alliance => (
-                <option key={alliance} value={alliance}>{alliance}</option>
-              ))}
-            </select>
-            <span className="text-sm text-gray-400">
-              Showing {data.players.length} of {data.totalPlayers} players
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Leaderboard Table */}
-      <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-900">
                 <tr>
-                  <th className="sticky left-0 bg-gray-900 px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider z-10">
-                    Rank
-                  </th>
-                  <th className="sticky left-16 bg-gray-900 px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider z-10 min-w-48">
-                    Player
-                  </th>
-                  {selectedMetrics.map(metricKey => {
-                    const metric = metrics.find(m => m.key === metricKey);
-                    if (!metric) return null;
-                    const Icon = metric.icon;
-                    
+                  {visibleColumns.map(column => {
+                    const Icon = column.icon;
                     return (
                       <th
-                        key={metricKey}
-                        onClick={() => onSort(metricKey)}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-800 transition-colors"
+                        key={column.key}
+                        className={`px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${
+                          column.sortable ? 'cursor-pointer hover:bg-gray-800' : ''
+                        }`}
+                        onClick={() => column.sortable && onSort(column.key)}
                       >
                         <div className="flex items-center gap-2">
                           <Icon className="w-4 h-4" />
-                          {metric.label}
-                          {getSortIcon(metricKey)}
+                          {column.label}
+                          {column.sortable && getSortIcon(column.key)}
                         </div>
                       </th>
                     );
@@ -260,42 +239,50 @@ export function LeaderboardTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {data.players.map((player) => (
+                {data.players.map(player => (
                   <tr
                     key={player.lordId}
-                    onClick={() => onPlayerClick?.(player)}
+                    onClick={() => onPlayerClick(player)}
                     className="hover:bg-gray-700 cursor-pointer transition-colors"
                   >
-                    <td className="sticky left-0 bg-gray-800 px-4 py-3 z-10">
-                      <div className="flex items-center gap-2">
-                        {getRankIcon(player.rank)}
-                      </div>
-                    </td>
-                    <td className="sticky left-16 bg-gray-800 px-4 py-3 z-10 min-w-48">
-                      <div>
-                        <p className="text-white font-medium truncate">{player.name}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          {player.allianceTag && (
-                            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs">
+                    {visibleColumns.map(column => (
+                      <td key={column.key} className="px-4 py-3 text-sm text-gray-300">
+                        {column.key === 'rank' && (
+                          <Badge className={getRankBadgeColor(player.rank)}>
+                            #{player.rank}
+                          </Badge>
+                        )}
+                        {column.key === 'name' && (
+                          <div>
+                            <p className="text-white font-medium">{player.name}</p>
+                            <p className="text-xs text-gray-400">ID: {player.lordId}</p>
+                          </div>
+                        )}
+                        {column.key === 'allianceTag' && (
+                          player.allianceTag ? (
+                            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
                               {player.allianceTag}
                             </Badge>
-                          )}
-                          <span className="text-gray-400 text-xs">
-                            ID: {player.lordId}
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )
+                        )}
+                        {(column.key === 'currentPower' || column.key === 'merits' || column.key === 'unitsKilled') && (
+                          formatNumber(player[column.key])
+                        )}
+                        {(column.key === 'killDeathRatio' || column.key === 'winRate') && (
+                          <span className={
+                            typeof player[column.key] === 'number' && (player[column.key] as number) > 1 ? 'text-green-400' :
+                            typeof player[column.key] === 'number' && (player[column.key] as number) < 1 ? 'text-red-400' : 'text-gray-300'
+                          }>
+                            {player[column.key]}
                           </span>
-                        </div>
-                      </div>
-                    </td>
-                    {selectedMetrics.map(metricKey => {
-                      const metric = metrics.find(m => m.key === metricKey);
-                      const value = player[metricKey];
-                      
-                      return (
-                        <td key={metricKey} className="px-4 py-3 text-sm text-white">
-                          {formatValue(value, metric?.format || 'number')}
-                        </td>
-                      );
-                    })}
+                        )}
+                        {(column.key === 'victories' || column.key === 'cityLevel') && (
+                          player[column.key].toLocaleString()
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -306,61 +293,48 @@ export function LeaderboardTable({
 
       {/* Pagination */}
       {data.totalPages > 1 && (
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">
-                Page {data.currentPage} of {data.totalPages}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange(data.currentPage - 1)}
-                  disabled={data.currentPage <= 1}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  Previous
-                </Button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (data.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (data.currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (data.currentPage >= data.totalPages - 2) {
-                    pageNum = data.totalPages - 4 + i;
-                  } else {
-                    pageNum = data.currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={data.currentPage === pageNum ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => onPageChange(pageNum)}
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPageChange(data.currentPage + 1)}
-                  disabled={data.currentPage >= data.totalPages}
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-400">
+            Page {data.currentPage} of {data.totalPages} • {data.totalPlayers.toLocaleString()} total players
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(1)}
+              disabled={data.currentPage === 1}
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(data.currentPage - 1)}
+              disabled={data.currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="px-3 py-1 bg-gray-700 rounded text-sm text-white">
+              {data.currentPage}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(data.currentPage + 1)}
+              disabled={data.currentPage === data.totalPages}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(data.totalPages)}
+              disabled={data.currentPage === data.totalPages}
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

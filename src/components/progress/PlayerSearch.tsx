@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, X, Plus, User } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Search, X, Users } from 'lucide-react';
 
 interface Player {
   lordId: string;
@@ -17,51 +16,35 @@ interface PlayerSearchProps {
   selectedPlayers: Player[];
   onPlayerAdd: (player: Player) => void;
   onPlayerRemove: (lordId: string) => void;
-  maxPlayers?: number;
+  maxPlayers: number;
 }
 
-export function PlayerSearch({ 
-  selectedPlayers, 
-  onPlayerAdd, 
-  onPlayerRemove, 
-  maxPlayers = 5 
-}: PlayerSearchProps) {
-  const [query, setQuery] = useState('');
+export function PlayerSearch({ selectedPlayers, onPlayerAdd, onPlayerRemove, maxPlayers }: PlayerSearchProps) {
+  const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Player[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    if (query.length < 2) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    // Debounce search
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      searchPlayers(query);
+    const delayedSearch = setTimeout(() => {
+      if (searchTerm.length >= 2) {
+        searchPlayers();
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+      }
     }, 300);
 
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [query]);
+    return () => clearTimeout(delayedSearch);
+  }, [searchTerm]);
 
-  const searchPlayers = async (searchQuery: string) => {
+  const searchPlayers = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/search/players?q=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`/api/search/players?q=${encodeURIComponent(searchTerm)}&limit=10`);
       if (response.ok) {
-        const results = await response.json();
-        setSearchResults(results);
+        const data = await response.json();
+        setSearchResults(data);
         setShowResults(true);
       }
     } catch (error) {
@@ -73,16 +56,14 @@ export function PlayerSearch({
 
   const handlePlayerSelect = (player: Player) => {
     onPlayerAdd(player);
-    setQuery('');
-    setSearchResults([]);
+    setSearchTerm('');
     setShowResults(false);
   };
 
-  const isPlayerSelected = (lordId: string) => {
-    return selectedPlayers.some(p => p.lordId === lordId);
-  };
-
   const formatNumber = (num: number) => {
+    if (num >= 1000000000) {
+      return (num / 1000000000).toFixed(1) + 'B';
+    }
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     }
@@ -108,69 +89,62 @@ export function PlayerSearch({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search players by name or Lord ID..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Search by player name or Lord ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-purple-500 focus:outline-none"
             disabled={selectedPlayers.length >= maxPlayers}
           />
-          {loading && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-            </div>
-          )}
         </div>
 
-        {/* Search Results */}
-        {showResults && searchResults.length > 0 && (
-          <Card className="absolute top-full left-0 right-0 z-10 mt-1 bg-gray-800 border-gray-600 max-h-64 overflow-y-auto">
-            <CardContent className="p-2">
-              {searchResults.map((player) => (
-                <div
-                  key={player.lordId}
-                  onClick={() => !isPlayerSelected(player.lordId) && handlePlayerSelect(player)}
-                  className={`
-                    flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors
-                    ${isPlayerSelected(player.lordId) 
-                      ? 'bg-gray-700 opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-gray-700'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-white font-medium">{player.currentName}</p>
-                      <div className="flex items-center space-x-2 text-xs text-gray-400">
-                        <span>ID: {player.lordId}</span>
-                        <span>•</span>
-                        <span>{formatNumber(player.currentPower)} power</span>
-                        {player.allianceTag && (
-                          <>
-                            <span>•</span>
-                            <span>{player.allianceTag}</span>
-                          </>
-                        )}
+        {/* Search Results Dropdown */}
+        {showResults && (
+          <div className="absolute z-10 w-full mt-1 bg-gray-700 border border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {loading ? (
+              <div className="p-4 text-center text-gray-400">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500 mx-auto"></div>
+              </div>
+            ) : searchResults.length > 0 ? (
+              searchResults.map((player) => {
+                const isSelected = selectedPlayers.some(p => p.lordId === player.lordId);
+                const isDisabled = selectedPlayers.length >= maxPlayers && !isSelected;
+                
+                return (
+                  <div
+                    key={player.lordId}
+                    onClick={() => !isSelected && !isDisabled && handlePlayerSelect(player)}
+                    className={`p-3 border-b border-gray-600 last:border-b-0 cursor-pointer transition-colors ${
+                      isSelected 
+                        ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
+                        : isDisabled
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white font-medium">{player.currentName}</p>
+                        <p className="text-gray-400 text-sm">
+                          {player.allianceTag || 'No Alliance'} • ID: {player.lordId}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white text-sm">{formatNumber(player.currentPower)}</p>
+                        <p className="text-gray-400 text-xs">Power</p>
                       </div>
                     </div>
+                    {isSelected && (
+                      <p className="text-purple-400 text-xs mt-1">Already selected</p>
+                    )}
                   </div>
-                  {isPlayerSelected(player.lordId) ? (
-                    <span className="text-gray-500 text-sm">Selected</span>
-                  ) : (
-                    <Plus className="w-4 h-4 text-gray-400" />
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {showResults && searchResults.length === 0 && query.length >= 2 && !loading && (
-          <Card className="absolute top-full left-0 right-0 z-10 mt-1 bg-gray-800 border-gray-600">
-            <CardContent className="p-4 text-center text-gray-400">
-              No players found matching "{query}"
-            </CardContent>
-          </Card>
+                );
+              })
+            ) : (
+              <div className="p-4 text-center text-gray-400">
+                No players found
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -178,17 +152,10 @@ export function PlayerSearch({
       {selectedPlayers.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-300">
+            <h4 className="text-white font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" />
               Selected Players ({selectedPlayers.length}/{maxPlayers})
             </h4>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => selectedPlayers.forEach(p => onPlayerRemove(p.lordId))}
-              className="text-gray-400 hover:text-white text-xs"
-            >
-              Clear All
-            </Button>
           </div>
           
           <div className="space-y-2">
@@ -197,30 +164,17 @@ export function PlayerSearch({
                 key={player.lordId}
                 className="flex items-center justify-between p-3 bg-gray-700 rounded-lg"
               >
-                <div className="flex items-center space-x-3">
-                  <User className="w-4 h-4 text-purple-400" />
-                  <div>
-                    <p className="text-white font-medium">{player.currentName}</p>
-                    <div className="flex items-center space-x-2 text-xs text-gray-400">
-                      <span>ID: {player.lordId}</span>
-                      <span>•</span>
-                      <span>{formatNumber(player.currentPower)} power</span>
-                      {player.allianceTag && (
-                        <>
-                          <span>•</span>
-                          <span>{player.allianceTag}</span>
-                        </>
-                      )}
-                      <span>•</span>
-                      <span>Last seen: {formatDate(player.lastSeen)}</span>
-                    </div>
-                  </div>
+                <div>
+                  <p className="text-white font-medium">{player.currentName}</p>
+                  <p className="text-gray-400 text-sm">
+                    {player.allianceTag || 'No Alliance'} • {formatNumber(player.currentPower)} Power
+                  </p>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onPlayerRemove(player.lordId)}
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-400 hover:text-red-400 hover:bg-red-900/20"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -230,11 +184,16 @@ export function PlayerSearch({
         </div>
       )}
 
-      {selectedPlayers.length >= maxPlayers && (
-        <p className="text-sm text-yellow-400">
-          Maximum of {maxPlayers} players can be compared at once.
-        </p>
-      )}
+      {/* Help Text */}
+      <div className="text-sm text-gray-400">
+        {selectedPlayers.length === 0 ? (
+          <p>Search and select up to {maxPlayers} players to compare their progress over time.</p>
+        ) : selectedPlayers.length >= maxPlayers ? (
+          <p>Maximum {maxPlayers} players selected. Remove a player to add another.</p>
+        ) : (
+          <p>You can select {maxPlayers - selectedPlayers.length} more player{maxPlayers - selectedPlayers.length !== 1 ? 's' : ''}.</p>
+        )}
+      </div>
     </div>
   );
 }

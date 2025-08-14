@@ -1,32 +1,30 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Minus, Zap, Sword, Shield, Trophy } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Zap, Sword, Shield, Award } from 'lucide-react';
 
 interface PlayerMetrics {
-  powerGrowth: number;
-  killsGrowth: number;
-  deathsGrowth: number;
-  meritsGrowth: number;
-  averageDailyPowerGrowth: number;
-  killDeathRatio: string | number;
-  totalDays: number;
-  currentPower: number;
-  currentKills: number;
-  currentDeaths: number;
-  currentMerits: number;
-}
-
-interface PlayerProgress {
   player: {
     lordId: string;
     currentName: string;
   };
-  metrics: PlayerMetrics | null;
+  metrics: {
+    powerGrowth: number;
+    killsGrowth: number;
+    deathsGrowth: number;
+    meritsGrowth: number;
+    averageDailyPowerGrowth: number;
+    killDeathRatio: string | number;
+    totalDays: number;
+    currentPower: number;
+    currentKills: number;
+    currentDeaths: number;
+    currentMerits: number;
+  } | null;
 }
 
 interface ProgressMetricsProps {
-  players: PlayerProgress[];
+  players: PlayerMetrics[];
 }
 
 export function ProgressMetrics({ players }: ProgressMetricsProps) {
@@ -45,29 +43,29 @@ export function ProgressMetrics({ players }: ProgressMetricsProps) {
 
   const formatGrowth = (growth: number) => {
     const formatted = formatNumber(Math.abs(growth));
-    if (growth > 0) return `+${formatted}`;
-    if (growth < 0) return `-${formatted}`;
-    return formatted;
+    return growth >= 0 ? `+${formatted}` : `-${formatted}`;
   };
 
-  const getTrendIcon = (growth: number) => {
+  const getGrowthIcon = (growth: number) => {
     if (growth > 0) return <TrendingUp className="w-4 h-4 text-green-500" />;
     if (growth < 0) return <TrendingDown className="w-4 h-4 text-red-500" />;
     return <Minus className="w-4 h-4 text-gray-500" />;
   };
 
-  const getTrendColor = (growth: number) => {
+  const getGrowthColor = (growth: number) => {
     if (growth > 0) return 'text-green-500';
     if (growth < 0) return 'text-red-500';
     return 'text-gray-500';
   };
 
-  if (players.length === 0) {
+  const playersWithMetrics = players.filter(p => p.metrics !== null);
+
+  if (playersWithMetrics.length === 0) {
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8 text-center text-gray-400">
-          <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Select players to view progress metrics</p>
+          <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No metrics available. Players need at least 2 data points to calculate growth.</p>
         </CardContent>
       </Card>
     );
@@ -75,134 +73,145 @@ export function ProgressMetrics({ players }: ProgressMetricsProps) {
 
   return (
     <div className="space-y-6">
-      {players.map((playerProgress) => {
-        const { player, metrics } = playerProgress;
-        
-        if (!metrics) {
-          return (
-            <Card key={player.lordId} className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-white">{player.currentName}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-400">Not enough data for progress analysis</p>
-              </CardContent>
-            </Card>
-          );
-        }
+      {playersWithMetrics.map((playerData) => {
+        const { player, metrics } = playerData;
+        if (!metrics) return null;
 
         return (
           <Card key={player.lordId} className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white flex items-center justify-between">
-                <span>{player.currentName}</span>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Award className="w-5 h-5 text-purple-500" />
+                {player.currentName}
                 <span className="text-sm text-gray-400 font-normal">
-                  {metrics.totalDays} days tracked
+                  ({metrics.totalDays} day{metrics.totalDays !== 1 ? 's' : ''} tracked)
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Power Growth */}
+                {/* Power Metrics */}
                 <div className="p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-yellow-500" />
-                      <span className="text-sm text-gray-300">Power</span>
+                      <span className="text-sm text-gray-400">Power</span>
                     </div>
-                    {getTrendIcon(metrics.powerGrowth)}
+                    {getGrowthIcon(metrics.powerGrowth)}
                   </div>
                   <div className="space-y-1">
                     <p className="text-lg font-bold text-white">
                       {formatNumber(metrics.currentPower)}
                     </p>
-                    <p className={`text-sm ${getTrendColor(metrics.powerGrowth)}`}>
+                    <p className={`text-sm ${getGrowthColor(metrics.powerGrowth)}`}>
                       {formatGrowth(metrics.powerGrowth)}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      {formatGrowth(metrics.averageDailyPowerGrowth)}/day
+                    <p className="text-xs text-gray-500">
+                      {formatNumber(metrics.averageDailyPowerGrowth)}/day avg
                     </p>
                   </div>
                 </div>
 
-                {/* Combat Stats */}
+                {/* Combat Kills */}
                 <div className="p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <Sword className="w-4 h-4 text-red-500" />
-                      <span className="text-sm text-gray-300">Combat</span>
+                      <span className="text-sm text-gray-400">Kills</span>
                     </div>
-                    <span className="text-xs text-gray-400">K/D: {metrics.killDeathRatio}</span>
+                    {getGrowthIcon(metrics.killsGrowth)}
                   </div>
                   <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Kills:</span>
-                      <span className="text-green-400">
-                        {formatNumber(metrics.currentKills)}
-                      </span>
+                    <p className="text-lg font-bold text-white">
+                      {formatNumber(metrics.currentKills)}
+                    </p>
+                    <p className={`text-sm ${getGrowthColor(metrics.killsGrowth)}`}>
+                      {formatGrowth(metrics.killsGrowth)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      K/D: {metrics.killDeathRatio}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Combat Deaths */}
+                <div className="p-4 bg-gray-700 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-500" />
+                      <span className="text-sm text-gray-400">Deaths</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Deaths:</span>
-                      <span className="text-red-400">
-                        {formatNumber(metrics.currentDeaths)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>Growth:</span>
-                      <span className={getTrendColor(metrics.killsGrowth)}>
-                        {formatGrowth(metrics.killsGrowth)} / {formatGrowth(metrics.deathsGrowth)}
-                      </span>
-                    </div>
+                    {getGrowthIcon(-metrics.deathsGrowth)} {/* Inverted - fewer deaths is better */}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-lg font-bold text-white">
+                      {formatNumber(metrics.currentDeaths)}
+                    </p>
+                    <p className={`text-sm ${getGrowthColor(metrics.deathsGrowth)}`}>
+                      {formatGrowth(metrics.deathsGrowth)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {metrics.totalDays > 0 ? formatNumber(Math.round(metrics.deathsGrowth / metrics.totalDays)) : '0'}/day avg
+                    </p>
                   </div>
                 </div>
 
                 {/* Merits */}
                 <div className="p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <Trophy className="w-4 h-4 text-purple-500" />
-                      <span className="text-sm text-gray-300">Merits</span>
+                    <div className="flex items-center gap-2">
+                      <Award className="w-4 h-4 text-purple-500" />
+                      <span className="text-sm text-gray-400">Merits</span>
                     </div>
-                    {getTrendIcon(metrics.meritsGrowth)}
+                    {getGrowthIcon(metrics.meritsGrowth)}
                   </div>
                   <div className="space-y-1">
                     <p className="text-lg font-bold text-white">
                       {formatNumber(metrics.currentMerits)}
                     </p>
-                    <p className={`text-sm ${getTrendColor(metrics.meritsGrowth)}`}>
+                    <p className={`text-sm ${getGrowthColor(metrics.meritsGrowth)}`}>
                       {formatGrowth(metrics.meritsGrowth)}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      {Math.round(metrics.meritsGrowth / metrics.totalDays)}/day avg
+                    <p className="text-xs text-gray-500">
+                      {metrics.totalDays > 0 ? formatNumber(Math.round(metrics.meritsGrowth / metrics.totalDays)) : '0'}/day avg
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Performance Summary */}
-                <div className="p-4 bg-gray-700 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Shield className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-gray-300">Performance</span>
+              {/* Performance Summary */}
+              <div className="mt-4 p-4 bg-gray-900 rounded-lg">
+                <h4 className="text-white font-medium mb-2">Performance Summary</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-400">Growth Rate:</span>
+                    <span className={`ml-2 font-medium ${
+                      metrics.averageDailyPowerGrowth > 0 ? 'text-green-500' : 
+                      metrics.averageDailyPowerGrowth < 0 ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {metrics.averageDailyPowerGrowth > 0 ? 'Positive' : 
+                       metrics.averageDailyPowerGrowth < 0 ? 'Declining' : 'Stable'}
+                    </span>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Efficiency:</span>
-                      <span className="text-white">
-                        {metrics.killDeathRatio === 'N/A' ? 'N/A' : `${metrics.killDeathRatio}:1`}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Power/Day:</span>
-                      <span className={getTrendColor(metrics.averageDailyPowerGrowth)}>
-                        {formatNumber(metrics.averageDailyPowerGrowth)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">Activity:</span>
-                      <span className="text-white">
-                        {metrics.totalDays > 0 ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
+                  <div>
+                    <span className="text-gray-400">Combat Efficiency:</span>
+                    <span className={`ml-2 font-medium ${
+                      typeof metrics.killDeathRatio === 'number' && metrics.killDeathRatio > 1 ? 'text-green-500' :
+                      typeof metrics.killDeathRatio === 'number' && metrics.killDeathRatio < 1 ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {typeof metrics.killDeathRatio === 'number' && metrics.killDeathRatio > 1 ? 'Excellent' :
+                       typeof metrics.killDeathRatio === 'number' && metrics.killDeathRatio < 1 ? 'Needs Improvement' : 'Average'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Activity Level:</span>
+                    <span className={`ml-2 font-medium ${
+                      metrics.meritsGrowth > 0 ? 'text-green-500' : 
+                      metrics.meritsGrowth < 0 ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {metrics.meritsGrowth > 0 ? 'Active' : 
+                       metrics.meritsGrowth < 0 ? 'Declining' : 'Stable'}
+                    </span>
                   </div>
                 </div>
               </div>

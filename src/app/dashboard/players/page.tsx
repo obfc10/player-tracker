@@ -3,6 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ExportButton } from '@/components/ui/export-button';
+import { ExportConfigs } from '@/lib/export';
 
 interface PlayerData {
   lordId: string;
@@ -193,7 +195,28 @@ export default function PlayersPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-4">Players Database</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold text-white">Players Database</h1>
+          <ExportButton
+            data={filteredPlayers.map(player => ({
+              name: player.name,
+              alliance: player.allianceTag,
+              power: parseInt(player.currentPower || '0'),
+              killPoints: parseInt(player.merits || '0'),
+              level: player.cityLevel,
+              vipLevel: 0, // Not available in current data
+              might: parseInt(player.power || '0'),
+              troopKills: parseInt(player.unitsKilled || '0'),
+              deads: parseInt(player.unitsDead || '0'),
+              rss_assistance_given: parseInt(player.resourcesGiven || '0'),
+              rss_assistance_received: 0 // Not available in current data
+            }))}
+            exportConfig={ExportConfigs.players}
+            filename={`players_export_${new Date().toISOString().split('T')[0]}`}
+            title="Kingdom 671 - Players Database"
+            subtitle={`Export generated on ${new Date().toLocaleDateString()} | ${filteredPlayers.length} players`}
+          />
+        </div>
         
         {/* Filters */}
         <div className="flex gap-4 mb-4">

@@ -1,6 +1,5 @@
 'use client';
 
-import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -10,7 +9,10 @@ import {
   Title,
   Tooltip,
   Legend,
+  TimeScale,
 } from 'chart.js';
+import { Line } from 'react-chartjs-2';
+import 'chartjs-adapter-date-fns';
 
 ChartJS.register(
   CategoryScale,
@@ -19,15 +21,17 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  TimeScale
 );
 
 interface ProgressDataPoint {
   timestamp: string;
   currentPower: number;
+  merits: number;
   unitsKilled: number;
   unitsDead: number;
-  merits: number;
+  allianceTag?: string | null;
 }
 
 interface PlayerProgress {
@@ -43,24 +47,32 @@ interface ProgressChartProps {
   metric: 'power' | 'kills' | 'deaths' | 'merits';
 }
 
-const colors = [
-  '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444',
-  '#EC4899', '#84CC16', '#F97316', '#6366F1', '#14B8A6'
-];
-
 export function ProgressChart({ players, metric }: ProgressChartProps) {
-  const getMetricValue = (snapshot: ProgressDataPoint) => {
+  const formatNumber = (num: number) => {
+    if (num >= 1000000000) {
+      return (num / 1000000000).toFixed(1) + 'B';
+    }
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  const getMetricValue = (point: ProgressDataPoint) => {
     switch (metric) {
       case 'power':
-        return snapshot.currentPower;
-      case 'kills':
-        return snapshot.unitsKilled;
-      case 'deaths':
-        return snapshot.unitsDead;
+        return point.currentPower;
       case 'merits':
-        return snapshot.merits;
+        return point.merits;
+      case 'kills':
+        return point.unitsKilled;
+      case 'deaths':
+        return point.unitsDead;
       default:
-        return 0;
+        return point.currentPower;
     }
   };
 
@@ -68,67 +80,62 @@ export function ProgressChart({ players, metric }: ProgressChartProps) {
     switch (metric) {
       case 'power':
         return 'Power';
+      case 'merits':
+        return 'Merits';
       case 'kills':
         return 'Units Killed';
       case 'deaths':
         return 'Units Dead';
-      case 'merits':
-        return 'Merits';
       default:
-        return '';
+        return 'Power';
     }
   };
 
-  const formatNumber = (value: number) => {
-    if (value >= 1000000000) {
-      return (value / 1000000000).toFixed(1) + 'B';
-    }
-    if (value >= 1000000) {
-      return (value / 1000000).toFixed(1) + 'M';
-    }
-    if (value >= 1000) {
-      return (value / 1000).toFixed(1) + 'K';
-    }
-    return value.toString();
+  const getPlayerColor = (index: number) => {
+    const colors = [
+      'rgba(147, 51, 234, 1)', // Purple
+      'rgba(59, 130, 246, 1)', // Blue
+      'rgba(16, 185, 129, 1)', // Green
+      'rgba(245, 158, 11, 1)', // Yellow
+      'rgba(239, 68, 68, 1)',  // Red
+    ];
+    return colors[index % colors.length];
   };
 
-  // Create all unique timestamps from all players
-  const allTimestamps = new Set<string>();
-  players.forEach(player => {
-    player.snapshots.forEach(snapshot => {
-      allTimestamps.add(new Date(snapshot.timestamp).toLocaleDateString());
-    });
-  });
-  
-  const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => 
-    new Date(a).getTime() - new Date(b).getTime()
-  );
+  if (players.length === 0 || players.every(p => p.snapshots.length === 0)) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-400">
+        <div className="text-center">
+          <p>No data available for the selected time range</p>
+          <p className="text-sm mt-2">Try selecting a longer time period or different players</p>
+        </div>
+      </div>
+    );
+  }
 
-  const datasets = players.map((player, index) => {
-    const color = colors[index % colors.length];
-    
-    // Create data points for each timestamp
-    const data = sortedTimestamps.map(timestamp => {
-      const snapshot = player.snapshots.find(s => 
-        new Date(s.timestamp).toLocaleDateString() === timestamp
-      );
-      return snapshot ? getMetricValue(snapshot) : null;
-    });
-
+  // Create datasets for each player
+  const datasets = players.map((playerData, index) => {
+    const color = getPlayerColor(index);
     return {
-      label: player.player.currentName,
-      data,
+      label: playerData.player.currentName,
+      data: playerData.snapshots.map(snapshot => ({
+        x: new Date(snapshot.timestamp),
+        y: getMetricValue(snapshot)
+      })),
       borderColor: color,
-      backgroundColor: color + '20',
-      tension: 0.1,
-      spanGaps: true,
+      backgroundColor: color.replace('1)', '0.1)'),
+      borderWidth: 2,
+      fill: false,
+      tension: 0.4,
+      pointBackgroundColor: color,
+      pointBorderColor: '#ffffff',
+      pointBorderWidth: 2,
       pointRadius: 4,
       pointHoverRadius: 6,
     };
   });
 
   const chartData = {
-    labels: sortedTimestamps,
     datasets
   };
 
@@ -140,57 +147,93 @@ export function ProgressChart({ players, metric }: ProgressChartProps) {
       intersect: false,
     },
     plugins: {
+      title: {
+        display: true,
+        text: `Player Progress - ${getMetricLabel()} Over Time`,
+        color: 'rgba(255, 255, 255, 1)',
+        font: {
+          size: 16,
+          weight: 'bold' as const,
+        },
+      },
       legend: {
+        display: true,
         position: 'top' as const,
         labels: {
-          color: '#D1D5DB',
-          font: {
-            size: 12
-          },
+          color: 'rgba(255, 255, 255, 1)',
           usePointStyle: true,
+          padding: 20,
         },
       },
       tooltip: {
-        backgroundColor: '#1F2937',
-        titleColor: '#F9FAFB',
-        bodyColor: '#D1D5DB',
-        borderColor: '#374151',
+        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+        titleColor: 'rgba(255, 255, 255, 1)',
+        bodyColor: 'rgba(255, 255, 255, 0.8)',
+        borderColor: 'rgba(75, 85, 99, 1)',
         borderWidth: 1,
         callbacks: {
+          title: function(context: any) {
+            const date = new Date(context[0].parsed.x);
+            return date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          },
           label: function(context: any) {
-            const label = context.dataset.label || '';
             const value = context.parsed.y;
-            return `${label}: ${formatNumber(value)}`;
+            const playerName = context.dataset.label;
+            return `${playerName}: ${formatNumber(value)} ${getMetricLabel()}`;
           }
         }
       },
     },
     scales: {
       x: {
-        grid: {
-          color: '#374151',
+        type: 'time' as const,
+        time: {
+          displayFormats: {
+            day: 'MMM dd',
+            week: 'MMM dd',
+            month: 'MMM yyyy'
+          }
         },
         ticks: {
-          color: '#D1D5DB',
-          maxTicksLimit: 10,
+          color: 'rgba(156, 163, 175, 1)',
+        },
+        grid: {
+          color: 'rgba(75, 85, 99, 0.3)',
+        },
+        title: {
+          display: true,
+          text: 'Date',
+          color: 'rgba(156, 163, 175, 1)',
         },
       },
       y: {
-        grid: {
-          color: '#374151',
-        },
+        beginAtZero: true,
         ticks: {
-          color: '#D1D5DB',
+          color: 'rgba(156, 163, 175, 1)',
           callback: function(value: any) {
             return formatNumber(value);
           }
+        },
+        grid: {
+          color: 'rgba(75, 85, 99, 0.3)',
+        },
+        title: {
+          display: true,
+          text: getMetricLabel(),
+          color: 'rgba(156, 163, 175, 1)',
         },
       },
     },
   };
 
   return (
-    <div className="h-96">
+    <div className="h-80">
       <Line data={chartData} options={options} />
     </div>
   );

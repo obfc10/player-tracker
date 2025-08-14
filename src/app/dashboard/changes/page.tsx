@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ExportButton } from '@/components/ui/export-button';
+import { ExportConfigs } from '@/lib/export';
 import { ChangesTable } from '@/components/changes/ChangesTable';
 import { ChangesSummary } from '@/components/changes/ChangesSummary';
-import { 
-  BarChart3, 
+import {
+  BarChart3,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -168,16 +170,37 @@ export default function ChangesPage() {
               Track player progression and compare performance between periods
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {data && (
+              <ExportButton
+                data={[...data.gainers, ...data.losers].map(change => ({
+                  playerName: change.currentName || change.name,
+                  changeType: change.change > 0 ? 'Gain' : 'Loss',
+                  field: selectedMetric,
+                  oldValue: change.fromValue,
+                  newValue: change.toValue,
+                  difference: change.change,
+                  timestamp: data.summary.toSnapshot.timestamp
+                }))}
+                exportConfig={ExportConfigs.changes}
+                filename={`changes_analysis_${selectedMetric}_${new Date().toISOString().split('T')[0]}`}
+                title={`Kingdom 671 - Changes Analysis (${selectedMetric})`}
+                subtitle={`${data.gainers.length + data.losers.length} players tracked | Export generated on ${new Date().toLocaleDateString()}`}
+                variant="outline"
+                size="sm"
+              />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ExportButton } from '@/components/ui/export-button';
+import { ExportConfigs } from '@/lib/export';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AllianceLeaderboard } from '@/components/leaderboard/AllianceLeaderboard';
 import { Trophy, Shield, Users, Crown, RefreshCw } from 'lucide-react';
@@ -222,7 +224,7 @@ export default function LeaderboardPage() {
             <p className="text-gray-400">
               {playerData?.snapshotInfo || allianceData?.snapshotInfo ? (
                 <>
-                  Kingdom {(playerData?.snapshotInfo || allianceData?.snapshotInfo)?.kingdom} • 
+                  Kingdom {(playerData?.snapshotInfo || allianceData?.snapshotInfo)?.kingdom} •
                   Last updated: {formatDate((playerData?.snapshotInfo || allianceData?.snapshotInfo)?.timestamp || '')}
                 </>
               ) : (
@@ -230,16 +232,72 @@ export default function LeaderboardPage() {
               )}
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            {activeTab === 'players' && playerData?.players && (
+              <ExportButton
+                data={playerData.players.map((player, index) => ({
+                  rank: player.rank,
+                  name: player.name,
+                  alliance: player.allianceTag || '',
+                  power: player.currentPower,
+                  killPoints: player.merits,
+                  powerGrowth: 0, // Not available in current data
+                  killPointsGrowth: 0 // Not available in current data
+                }))}
+                exportConfig={ExportConfigs.leaderboard}
+                filename={`player_leaderboard_${new Date().toISOString().split('T')[0]}`}
+                title="Kingdom 671 - Player Leaderboard"
+                subtitle={`Top ${playerData.players.length} players | Export generated on ${new Date().toLocaleDateString()}`}
+                variant="outline"
+                size="sm"
+              />
+            )}
+            {activeTab === 'alliances' && allianceData?.alliances && (
+              <ExportButton
+                data={allianceData.alliances.map((alliance, index) => ({
+                  rank: alliance.rank,
+                  tag: alliance.tag,
+                  memberCount: alliance.memberCount,
+                  totalPower: alliance.totalPower,
+                  averagePower: alliance.averagePower,
+                  totalKills: alliance.totalKills,
+                  totalDeaths: alliance.totalDeaths,
+                  killDeathRatio: alliance.killDeathRatio,
+                  winRate: alliance.winRate,
+                  topPlayer: alliance.topPlayer.name
+                }))}
+                exportConfig={{
+                  columns: [
+                    { key: 'rank', header: 'Rank', type: 'number' as const, width: 8 },
+                    { key: 'tag', header: 'Alliance Tag', width: 15 },
+                    { key: 'memberCount', header: 'Members', type: 'number' as const, width: 10 },
+                    { key: 'totalPower', header: 'Total Power', type: 'number' as const, width: 15 },
+                    { key: 'averagePower', header: 'Average Power', type: 'number' as const, width: 15 },
+                    { key: 'totalKills', header: 'Total Kills', type: 'number' as const, width: 15 },
+                    { key: 'totalDeaths', header: 'Total Deaths', type: 'number' as const, width: 15 },
+                    { key: 'killDeathRatio', header: 'K/D Ratio', type: 'number' as const, width: 12 },
+                    { key: 'winRate', header: 'Win Rate', type: 'number' as const, width: 12 },
+                    { key: 'topPlayer', header: 'Top Player', width: 20 }
+                  ]
+                }}
+                filename={`alliance_leaderboard_${new Date().toISOString().split('T')[0]}`}
+                title="Kingdom 671 - Alliance Leaderboard"
+                subtitle={`Top ${allianceData.alliances.length} alliances | Export generated on ${new Date().toLocaleDateString()}`}
+                variant="outline"
+                size="sm"
+              />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 

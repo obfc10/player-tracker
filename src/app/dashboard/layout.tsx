@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { 
   LayoutDashboard, 
   Users, 
@@ -139,8 +140,35 @@ export default function DashboardLayout({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-hidden">
-        <main className="h-full overflow-auto">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {/* Top Header with Search */}
+        <div className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <h2 className="text-lg font-semibold text-white">
+                {pathname === '/dashboard/overview' && 'Kingdom Overview'}
+                {pathname === '/dashboard/players' && 'Player Database'}
+                {pathname === '/dashboard/progress' && 'Progress Tracking'}
+                {pathname === '/dashboard/leaderboard' && 'Leaderboards'}
+                {pathname === '/dashboard/changes' && 'Change Analysis'}
+                {pathname === '/dashboard/alliance-moves' && 'Alliance Moves'}
+                {pathname === '/dashboard/name-changes' && 'Name Changes'}
+                {pathname === '/dashboard/upload' && 'Data Upload'}
+                {pathname.startsWith('/dashboard/player/') && 'Player Profile'}
+                {!pathname.includes('/dashboard/') && 'Dashboard'}
+              </h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <GlobalSearch />
+              <div className="text-sm text-gray-400">
+                {session?.user?.name} • {session?.user?.role?.toLowerCase()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
