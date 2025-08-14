@@ -5,6 +5,10 @@ import { prisma } from '@/lib/db';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+// Force dynamic rendering
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // Column mapping for the 39 fields
 const COLUMN_MAP = {
   lordId: 1,

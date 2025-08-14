@@ -6,12 +6,18 @@ const nextConfig = {
   env: {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-build',
   },
-  // Ignore build errors during static generation for API routes
+  // Properly handle dynamic routes
   typescript: {
     ignoreBuildErrors: false,
   },
   eslint: {
     ignoreDuringBuilds: false,
+  },
+  // Prevent static optimization for pages that use dynamic imports
+  staticPageGenerationTimeout: 60,
+  // Configure static generation
+  generateBuildId: async () => {
+    return 'player-tracker-build'
   }
 }
 
