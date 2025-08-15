@@ -110,12 +110,6 @@ export default function ChangesPage() {
   }, [selectedMetric, compareType, selectedAlliance, fromSnapshot, toSnapshot]);
 
   const fetchChangesData = async () => {
-    // Don't fetch if custom period is selected but snapshots aren't chosen
-    if (compareType === 'custom' && (!fromSnapshot || !toSnapshot)) {
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
       const params = new URLSearchParams({

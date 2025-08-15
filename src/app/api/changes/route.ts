@@ -52,7 +52,21 @@ export async function GET(request: NextRequest) {
         break;
       case 'custom':
         if (!fromDate || !toDate) {
-          return NextResponse.json({ error: 'From and to dates required for custom comparison' }, { status: 400 });
+          // Return available snapshots for selection, but no comparison data
+          return NextResponse.json({
+            gainers: [],
+            losers: [],
+            smallestIncreases: [],
+            summary: null,
+            availableSnapshots: snapshots.map((s: any) => ({
+              id: s.id,
+              timestamp: s.timestamp,
+              kingdom: s.kingdom,
+              filename: s.filename
+            })),
+            alliances: [],
+            alliance: allianceFilter
+          });
         }
         toSnapshot = snapshots.find((s: any) => s.id === toDate) || snapshots[0];
         fromSnapshot = snapshots.find((s: any) => s.id === fromDate) || snapshots[1];
