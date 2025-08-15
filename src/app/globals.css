@@ -65,3 +65,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure critical styles are included in production build */
+@layer utilities {
+  .force-include {
+    @apply bg-gray-900 text-white border border-gray-300 rounded-md px-3 py-2;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-card text-card-foreground border shadow-sm rounded-lg;
+    @apply min-h-screen flex items-center justify-center p-4;
+    @apply w-full max-w-md space-y-4 text-center;
+    @apply font-medium text-sm text-2xl font-bold;
+    @apply bg-gray-50 text-gray-600 text-gray-500;
+    @apply focus:outline-none focus:ring-2 focus:ring-purple-500;
+    @apply p-6 pt-0 flex flex-col space-y-1.5;
+  }
+}
