@@ -227,13 +227,22 @@ export async function POST(request: NextRequest) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(rows.length/BATCH_SIZE)}`);
         
-        // Simple transaction: just upsert players
+        // Simple transaction: just upsert players with realm status tracking
         await prisma.$transaction(async (tx: any) => {
           for (const data of batch) {
             await tx.player.upsert({
               where: { lordId: data.lordId },
-              update: { currentName: data.name },
-              create: { lordId: data.lordId, currentName: data.name }
+              update: { 
+                currentName: data.name,
+                lastSeenAt: timestamp,
+                hasLeftRealm: false, // Reset if they appear in new data
+                leftRealmAt: null    // Clear if they're back
+              },
+              create: { 
+                lordId: data.lordId, 
+                currentName: data.name,
+                lastSeenAt: timestamp
+              }
             });
           }
         }, {
@@ -315,6 +324,38 @@ export async function POST(request: NextRequest) {
         }
       }
       console.log(`Processed changes for ${changesProcessed}/${rows.length} players`);
+      
+      // Step 4: Mark players as "left realm" if they haven't been seen in recent snapshots
+      console.log('Checking for players who may have left the realm...');
+      const currentPlayerIds = rows.map(data => data.lordId);
+      
+      // Get cutoff date (7 days ago) for considering someone as "left"
+      const leftRealmCutoff = new Date(timestamp.getTime() - (7 * 24 * 60 * 60 * 1000));
+      
+      // Find players who haven't appeared in the last 7 days but were active before
+      const playersToMarkAsLeft = await prisma.player.findMany({
+        where: {
+          AND: [
+            { lordId: { notIn: currentPlayerIds } }, // Not in current upload
+            { hasLeftRealm: false }, // Not already marked as left
+            { lastSeenAt: { lt: leftRealmCutoff } }, // Last seen more than 7 days ago
+            { lastSeenAt: { not: null } } // Must have been seen before
+          ]
+        }
+      });
+      
+      if (playersToMarkAsLeft.length > 0) {
+        console.log(`Marking ${playersToMarkAsLeft.length} players as having left the realm`);
+        await prisma.player.updateMany({
+          where: {
+            lordId: { in: playersToMarkAsLeft.map(p => p.lordId) }
+          },
+          data: {
+            hasLeftRealm: true,
+            leftRealmAt: timestamp
+          }
+        });
+      }
       
       console.log('Upload processing completed successfully');
 

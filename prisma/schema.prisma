@@ -33,7 +33,14 @@ model Player {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   
+  // Realm status tracking
+  hasLeftRealm     Boolean           @default(false)
+  lastSeenAt       DateTime?
+  leftRealmAt      DateTime?
+  
   @@index([currentName])
+  @@index([hasLeftRealm])
+  @@index([lastSeenAt])
 }
 
 model NameChange {

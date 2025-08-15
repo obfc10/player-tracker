@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   GitBranch,
-  UserCheck
+  UserCheck,
+  UserX
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -44,7 +45,8 @@ export default function DashboardLayout({
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
-    { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck }
+    { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
+    { name: 'Left Realm', href: '/dashboard/left-realm', icon: UserX }
   ];
 
   const adminNavigation = [
