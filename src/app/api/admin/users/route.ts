@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const users = await prisma.user.findMany({
       select: {
         id: true,
+        username: true,
         email: true,
         name: true,
         role: true,
@@ -43,19 +44,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { email, name, role = 'VIEWER' } = await request.json();
+    const { username, email, name, role = 'VIEWER' } = await request.json();
 
-    if (!email || !email.includes('@')) {
-      return NextResponse.json({ error: 'Valid email is required' }, { status: 400 });
+    if (!username || username.length < 3) {
+      return NextResponse.json({ error: 'Username must be at least 3 characters' }, { status: 400 });
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { username }
     });
 
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
+      return NextResponse.json({ error: 'User with this username already exists' }, { status: 400 });
     }
 
     // Generate a temporary password (user will need to change it)
@@ -64,13 +65,15 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
-        email,
+        username,
+        email: email || null,
         name: name || null,
         password: hashedPassword,
         role: role as 'ADMIN' | 'VIEWER'
       },
       select: {
         id: true,
+        username: true,
         email: true,
         name: true,
         role: true,

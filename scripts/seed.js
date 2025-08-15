@@ -8,6 +8,7 @@ async function main() {
   
   await prisma.user.create({
     data: {
+      username: 'admin',
       email: 'admin@example.com',
       password,
       name: 'Admin',
@@ -15,7 +16,7 @@ async function main() {
     }
   });
   
-  console.log('Admin user created: admin@example.com / admin123');
+  console.log('Admin user created: admin / admin123');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

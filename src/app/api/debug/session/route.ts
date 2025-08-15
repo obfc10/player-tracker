@@ -20,21 +20,22 @@ export async function GET(request: NextRequest) {
       where: { id: session.user.id }
     });
 
-    const userByEmail = await prisma.user.findUnique({
-      where: { email: session.user.email! }
+    const userByUsername = await prisma.user.findUnique({
+      where: { username: session.user.username! }
     });
 
     return NextResponse.json({
       session: {
         userId: session.user.id,
+        username: session.user.username,
         userEmail: session.user.email,
         userRole: session.user.role
       },
       database: {
         userExistsById: !!dbUser,
-        userExistsByEmail: !!userByEmail,
-        actualUserId: userByEmail?.id,
-        actualUserEmail: userByEmail?.email
+        userExistsByUsername: !!userByUsername,
+        actualUserId: userByUsername?.id,
+        actualUsername: userByUsername?.username
       }
     });
   } catch (error) {

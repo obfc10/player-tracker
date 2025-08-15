@@ -15,7 +15,8 @@ import {
 
 interface User {
   id: string;
-  email: string;
+  username: string;
+  email: string | null;
   name: string | null;
   role: 'ADMIN' | 'VIEWER';
   createdAt: string;
@@ -26,7 +27,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' });
+  const [newUser, setNewUser] = useState({ username: '', email: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' });
 
   useEffect(() => {
     fetchUsers();
@@ -57,7 +58,7 @@ export default function UserManagementPage() {
 
       if (response.ok) {
         setShowCreateForm(false);
-        setNewUser({ email: '', name: '', role: 'VIEWER' });
+        setNewUser({ username: '', email: '', name: '', role: 'VIEWER' });
         fetchUsers();
       } else {
         const error = await response.json();
@@ -127,14 +128,25 @@ export default function UserManagementPage() {
             <form onSubmit={createUser} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Email
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={newUser.username}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">
+                  Email (Optional)
                 </label>
                 <input
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-                  required
                 />
               </div>
               <div>
@@ -196,12 +208,13 @@ export default function UserManagementPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-medium">
-                        {user.name?.[0] || user.email[0].toUpperCase()}
+                        {user.name?.[0] || user.username[0].toUpperCase()}
                       </span>
                     </div>
                     <div>
-                      <p className="text-white font-medium">{user.name || 'No name'}</p>
-                      <p className="text-gray-400 text-sm">{user.email}</p>
+                      <p className="text-white font-medium">{user.name || user.username}</p>
+                      <p className="text-gray-400 text-sm">@{user.username}</p>
+                      {user.email && <p className="text-gray-500 text-xs">{user.email}</p>}
                       <p className="text-gray-500 text-xs">
                         Created: {new Date(user.createdAt).toLocaleDateString()}
                       </p>

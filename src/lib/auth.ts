@@ -13,18 +13,18 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        username: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.username || !credentials?.password) return null;
         
         try {
           // Only connect to database when actually authorizing
           const prisma = await getPrisma();
           
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { username: credentials.username }
           });
           
           if (!user || !await bcrypt.compare(credentials.password, user.password)) {
@@ -33,6 +33,7 @@ export const authOptions: NextAuthOptions = {
           
           return { 
             id: user.id, 
+            username: user.username,
             email: user.email, 
             name: user.name, 
             role: user.role 
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.username = user.username;
         token.role = user.role;
       }
       return token;
@@ -62,6 +64,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.id as string;
+        session.user.username = token.username as string;
         session.user.role = token.role as string;
       }
       return session;
