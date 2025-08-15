@@ -109,6 +109,12 @@ export default function ChangesPage() {
   }, [selectedMetric, compareType, selectedAlliance, fromSnapshot, toSnapshot]);
 
   const fetchChangesData = async () => {
+    // Don't fetch if custom period is selected but snapshots aren't chosen
+    if (compareType === 'custom' && (!fromSnapshot || !toSnapshot)) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -127,9 +133,15 @@ export default function ChangesPage() {
       if (response.ok) {
         const changesData = await response.json();
         setData(changesData);
+      } else {
+        // Handle error responses
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('API Error:', errorData);
+        setData(null);
       }
     } catch (error) {
       console.error('Error fetching changes data:', error);
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -323,28 +335,48 @@ export default function ChangesPage() {
         <ChangesSummary summary={data.summary} loading={loading} />
       )}
 
-      {/* Changes Tables */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Top Gainers */}
-        <ChangesTable
-          changes={data?.gainers || []}
-          title="Top Gainers"
-          type="gainers"
-          metric={selectedMetric}
-          loading={loading}
-          onPlayerClick={handlePlayerClick}
-        />
+      {/* Custom Period Instructions */}
+      {compareType === 'custom' && (!fromSnapshot || !toSnapshot) && (
+        <Card className="bg-yellow-900/20 border-yellow-600/30">
+          <CardContent className="p-6 text-center">
+            <BarChart3 className="w-12 h-12 mx-auto mb-4 text-yellow-400" />
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Custom Period Selected
+            </h3>
+            <p className="text-yellow-200 mb-4">
+              Please select both "From" and "To" snapshots above to view the changes analysis.
+            </p>
+            <p className="text-sm text-yellow-300">
+              Choose two different time periods to compare player progression between specific dates.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Top Losers */}
-        <ChangesTable
-          changes={data?.losers || []}
-          title="Top Losers"
-          type="losers"
-          metric={selectedMetric}
-          loading={loading}
-          onPlayerClick={handlePlayerClick}
-        />
-      </div>
+      {/* Changes Tables */}
+      {data && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Top Gainers */}
+          <ChangesTable
+            changes={data?.gainers || []}
+            title="Top Gainers"
+            type="gainers"
+            metric={selectedMetric}
+            loading={loading}
+            onPlayerClick={handlePlayerClick}
+          />
+
+          {/* Top Losers */}
+          <ChangesTable
+            changes={data?.losers || []}
+            title="Top Losers"
+            type="losers"
+            metric={selectedMetric}
+            loading={loading}
+            onPlayerClick={handlePlayerClick}
+          />
+        </div>
+      )}
 
       {/* Quick Actions */}
       <Card className="bg-gray-800 border-gray-700">
