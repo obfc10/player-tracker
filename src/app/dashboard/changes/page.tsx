@@ -147,7 +147,7 @@ export default function ChangesPage() {
   };
 
   const handlePlayerClick = (change: Change) => {
-    router.push(`/dashboard/progress?player=${change.playerId}`);
+    router.push(`/dashboard/player/${change.playerId}`);
   };
 
   const formatDate = (dateString: string) => {

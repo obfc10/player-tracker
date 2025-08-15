@@ -183,8 +183,8 @@ export default function LeaderboardPage() {
   };
 
   const handlePlayerClick = (player: Player) => {
-    // Navigate to player card or progress view
-    router.push(`/dashboard/progress?player=${player.lordId}`);
+    // Navigate to player profile page
+    router.push(`/dashboard/player/${player.lordId}`);
   };
 
   const handleAllianceClick = (alliance: Alliance) => {
