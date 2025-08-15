@@ -87,6 +87,10 @@ export async function POST(request: NextRequest) {
     const timestamp = new Date(Date.UTC(year, month, day, hour, minute));
 
     // Create upload record
+    // Debug logging
+    console.log('Session user ID:', session.user.id);
+    console.log('Creating upload for user:', session.user.id);
+
     const upload = await prisma.upload.create({
       data: {
         filename: file.name,
