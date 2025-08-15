@@ -219,29 +219,69 @@ export async function POST(request: NextRequest) {
         rowCount++;
       });
 
-      // Process in batches for better performance
-      const BATCH_SIZE = 50;
+      // Step 1: Upsert all players in batches (no complex queries)
+      const BATCH_SIZE = 20; // Smaller batches to prevent timeouts
+      console.log(`Processing ${rows.length} players in batches of ${BATCH_SIZE}...`);
+      
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+        console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(rows.length/BATCH_SIZE)}`);
+        
+        // Simple transaction: just upsert players
+        await prisma.$transaction(async (tx: any) => {
+          for (const data of batch) {
+            await tx.player.upsert({
+              where: { lordId: data.lordId },
+              update: { currentName: data.name },
+              create: { lordId: data.lordId, currentName: data.name }
+            });
+          }
+        }, {
+          maxWait: 10000, // 10 seconds
+          timeout: 30000, // 30 seconds
+        });
+      }
+
+      // Step 2: Create all snapshots in batches (no complex lookups)
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         
         await prisma.$transaction(async (tx: any) => {
           for (const data of batch) {
-            // Upsert player
-            const player = await tx.player.upsert({
-              where: { lordId: data.lordId },
-              update: { currentName: data.name },
-              create: { lordId: data.lordId, currentName: data.name }
+            const { lordId, ...snapshotData } = data;
+            await tx.playerSnapshot.create({
+              data: {
+                playerId: data.lordId,
+                snapshotId: snapshot.id,
+                ...snapshotData
+              }
             });
+          }
+        }, {
+          maxWait: 10000, // 10 seconds
+          timeout: 30000, // 30 seconds
+        });
+      }
 
+      // Step 3: Process name and alliance changes (after all data is inserted)
+      console.log('Processing name and alliance changes...');
+      let changesProcessed = 0;
+      for (const data of rows) {
+        try {
+          // Get the most recent snapshot before this one (outside transaction)
+          const lastSnapshot = await prisma.playerSnapshot.findFirst({
+            where: { 
+              playerId: data.lordId,
+              snapshot: { timestamp: { lt: timestamp } } // Before this upload
+            },
+            orderBy: { snapshot: { timestamp: 'desc' } },
+            include: { snapshot: true }
+          });
+
+          if (lastSnapshot) {
             // Check for name changes
-            const lastSnapshot = await tx.playerSnapshot.findFirst({
-              where: { playerId: data.lordId },
-              orderBy: { snapshot: { timestamp: 'desc' } },
-              include: { snapshot: true }
-            });
-
-            if (lastSnapshot && lastSnapshot.name !== data.name) {
-              await tx.nameChange.create({
+            if (lastSnapshot.name !== data.name) {
+              await prisma.nameChange.create({
                 data: {
                   playerId: data.lordId,
                   oldName: lastSnapshot.name,
@@ -252,36 +292,31 @@ export async function POST(request: NextRequest) {
             }
 
             // Check for alliance changes
-            if (lastSnapshot) {
-              const oldAlliance = lastSnapshot.allianceTag || null;
-              const newAlliance = data.allianceTag || null;
-              
-              if (oldAlliance !== newAlliance) {
-                await tx.allianceChange.create({
-                  data: {
-                    playerId: data.lordId,
-                    oldAlliance: oldAlliance,
-                    oldAllianceId: lastSnapshot.allianceId,
-                    newAlliance: newAlliance,
-                    newAllianceId: data.allianceId,
-                    detectedAt: timestamp
-                  }
-                });
-              }
+            const oldAlliance = lastSnapshot.allianceTag || null;
+            const newAlliance = data.allianceTag || null;
+            
+            if (oldAlliance !== newAlliance) {
+              await prisma.allianceChange.create({
+                data: {
+                  playerId: data.lordId,
+                  oldAlliance: oldAlliance,
+                  oldAllianceId: lastSnapshot.allianceId,
+                  newAlliance: newAlliance,
+                  newAllianceId: data.allianceId,
+                  detectedAt: timestamp
+                }
+              });
             }
-
-            // Create player snapshot with all 39 fields
-            const { lordId, ...snapshotData } = data; // Remove lordId from data
-            await tx.playerSnapshot.create({
-              data: {
-                playerId: data.lordId,
-                snapshotId: snapshot.id,
-                ...snapshotData
-              }
-            });
           }
-        });
+          changesProcessed++;
+        } catch (error) {
+          console.error(`Error processing changes for player ${data.lordId}:`, error);
+          // Continue with other players
+        }
       }
+      console.log(`Processed changes for ${changesProcessed}/${rows.length} players`);
+      
+      console.log('Upload processing completed successfully');
 
       // Update upload status
       await prisma.upload.update({
