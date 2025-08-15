@@ -51,92 +51,54 @@ export async function GET(request: NextRequest) {
       where: whereClause
     });
 
-    // Build the query with proper numeric sorting for string fields
-    let players;
-    
-    if (isNumericStringField(sortBy)) {
-      // Use safe parameterized raw SQL for numeric sorting on string fields
-      const sortDirection = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-      
-      if (alliance !== 'all') {
-        // With alliance filter
-        const rawPlayers = await prisma.$queryRaw`
-          SELECT ps.*, p."currentName", p."currentAlliance"
-          FROM "PlayerSnapshot" ps
-          JOIN "Player" p ON ps."playerId" = p."lordId"
-          WHERE ps."snapshotId" = ${latestSnapshot.id}
-          AND ps."allianceTag" = ${alliance}
-          ORDER BY CAST(ps.${Prisma.raw(`"${sortBy}"`)} AS BIGINT) ${Prisma.raw(sortDirection)}
-          LIMIT ${limit} OFFSET ${(page - 1) * limit}
-        ` as any[];
-        
-        players = rawPlayers.map((row: any) => ({
-          ...row,
-          player: {
-            currentName: row.currentName,
-            currentAlliance: row.currentAlliance
-          }
-        }));
-      } else {
-        // Without alliance filter
-        const rawPlayers = await prisma.$queryRaw`
-          SELECT ps.*, p."currentName", p."currentAlliance"
-          FROM "PlayerSnapshot" ps
-          JOIN "Player" p ON ps."playerId" = p."lordId"
-          WHERE ps."snapshotId" = ${latestSnapshot.id}
-          ORDER BY CAST(ps.${Prisma.raw(`"${sortBy}"`)} AS BIGINT) ${Prisma.raw(sortDirection)}
-          LIMIT ${limit} OFFSET ${(page - 1) * limit}
-        ` as any[];
-        
-        players = rawPlayers.map((row: any) => ({
-          ...row,
-          player: {
-            currentName: row.currentName,
-            currentAlliance: row.currentAlliance
-          }
-        }));
+    // Fetch ALL leaderboard data for proper sorting (we'll paginate after sorting)
+    const allPlayers = await prisma.playerSnapshot.findMany({
+      where: whereClause,
+      include: {
+        player: true
       }
-    } else {
-      // Use standard Prisma sorting for non-numeric fields
-      const getOrderByClause = (): any => {
-        const sortOrder = order as 'asc' | 'desc';
-        
+    });
+
+    // Sort the data based on the requested field
+    const sortedPlayers = allPlayers.sort((a: any, b: any) => {
+      let aValue, bValue;
+      
+      if (isNumericStringField(sortBy)) {
+        // Parse numeric string fields
+        aValue = parseInt(a[sortBy] || '0');
+        bValue = parseInt(b[sortBy] || '0');
+      } else {
+        // Handle other field types
         switch (sortBy) {
           case 'name':
-            return { name: sortOrder };
+            aValue = a.name;
+            bValue = b.name;
+            break;
           case 'cityLevel':
-            return { cityLevel: sortOrder };
           case 'victories':
-            return { victories: sortOrder };
           case 'defeats':
-            return { defeats: sortOrder };
           case 'citySieges':
-            return { citySieges: sortOrder };
           case 'scouted':
-            return { scouted: sortOrder };
           case 'helpsGiven':
-            return { helpsGiven: sortOrder };
           case 'division':
-            return { division: sortOrder };
-          case 'killDeathRatio':
-            return { unitsKilled: sortOrder };
-          case 'winRate':
-            return { victories: sortOrder };
+            aValue = a[sortBy] || 0;
+            bValue = b[sortBy] || 0;
+            break;
           default:
-            return { currentPower: 'desc' };
+            aValue = parseInt(a.currentPower || '0');
+            bValue = parseInt(b.currentPower || '0');
         }
-      };
+      }
       
-      players = await prisma.playerSnapshot.findMany({
-        where: whereClause,
-        include: {
-          player: true
-        },
-        orderBy: getOrderByClause(),
-        skip: (page - 1) * limit,
-        take: limit
-      });
-    }
+      if (order === 'asc') {
+        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+      } else {
+        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+      }
+    });
+
+    // Apply pagination after sorting
+    const players = sortedPlayers.slice((page - 1) * limit, page * limit);
 
     // Get all unique alliances for filtering
     const alliances = await prisma.playerSnapshot.findMany({
