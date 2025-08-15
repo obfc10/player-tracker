@@ -89,8 +89,33 @@ export async function POST(request: NextRequest) {
     // Create upload record
     // Debug logging
     console.log('Session user ID:', session.user.id);
-    console.log('Creating upload for user:', session.user.id);
+    console.log('Session user email:', session.user.email);
+    
+    // Verify user exists in database
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    
+    if (!dbUser) {
+      console.error('User not found in database with ID:', session.user.id);
+      // Try to find by email as fallback
+      const userByEmail = await prisma.user.findUnique({
+        where: { email: session.user.email! }
+      });
+      
+      if (userByEmail) {
+        console.log('Found user by email, using ID:', userByEmail.id);
+        // Update session for consistency (though this won't persist)
+        session.user.id = userByEmail.id;
+      } else {
+        return NextResponse.json(
+          { error: 'User not found in database. Please log out and log back in.' },
+          { status: 401 }
+        );
+      }
+    }
 
+    console.log('Creating upload for verified user:', session.user.id);
     const upload = await prisma.upload.create({
       data: {
         filename: file.name,
