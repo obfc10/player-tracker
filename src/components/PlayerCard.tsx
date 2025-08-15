@@ -367,8 +367,8 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   
                   return (
                     <div key={resource} className="text-center p-4 bg-gray-800 rounded">
-                      <h4 className="font-semibold mb-2">{resource}</h4>
-                      <p className="text-2xl font-bold text-green-500">
+                      <h4 className="font-semibold mb-2 text-white">{resource}</h4>
+                      <p className="text-2xl font-bold text-green-400">
                         {current.toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-400 mt-1">
@@ -382,24 +382,24 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-gray-800 rounded">
                   <div className="flex justify-between items-center">
-                    <span>Resource Efficiency</span>
-                    <span className="text-xl font-bold text-purple-500">
+                    <span className="text-white">Resource Efficiency</span>
+                    <span className="text-xl font-bold text-purple-400">
                       {stats.resourceEfficiency}%
                     </span>
                   </div>
                 </div>
                 <div className="p-4 bg-gray-800 rounded">
                   <div className="flex justify-between items-center">
-                    <span>Resources Given</span>
-                    <span className="font-bold">
+                    <span className="text-white">Resources Given</span>
+                    <span className="font-bold text-blue-400">
                       {parseInt(latestSnapshot?.resourcesGiven || '0').toLocaleString()}
                     </span>
                   </div>
                 </div>
                 <div className="p-4 bg-gray-800 rounded">
                   <div className="flex justify-between items-center">
-                    <span>Donation Count</span>
-                    <span className="font-bold">
+                    <span className="text-white">Donation Count</span>
+                    <span className="font-bold text-yellow-400">
                       {latestSnapshot?.resourcesGivenCount || 0}
                     </span>
                   </div>
