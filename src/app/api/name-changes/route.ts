@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       return {
         id: change.id,
         playerId: change.playerId,
-        playerCurrentName: change.player.currentName,
+        playerCurrentName: change.player.currentName || change.newName, // Fallback to newName if currentName is wrong
         oldName: change.oldName,
         newName: change.newName,
         detectedAt: change.detectedAt,

@@ -252,6 +252,9 @@ export async function POST(request: NextRequest) {
       const BATCH_SIZE = 20; // Smaller batches to prevent timeouts
       console.log(`Processing ${rows.length} players in batches of ${BATCH_SIZE}...`);
       
+      // Track which players we've updated for debugging
+      const updatedPlayers = new Set();
+      
       for (let i = 0; i < rows.length; i += BATCH_SIZE) {
         const batch = rows.slice(i, i + BATCH_SIZE);
         console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1}/${Math.ceil(rows.length/BATCH_SIZE)}`);
@@ -259,6 +262,7 @@ export async function POST(request: NextRequest) {
         // Simple transaction: just upsert players with realm status tracking
         await prisma.$transaction(async (tx: any) => {
           for (const data of batch) {
+            console.log(`Updating player ${data.lordId} name to: ${data.name}`);
             await tx.player.upsert({
               where: { lordId: data.lordId },
               update: { 
@@ -273,6 +277,7 @@ export async function POST(request: NextRequest) {
                 lastSeenAt: timestamp
               }
             });
+            updatedPlayers.add(data.lordId);
           }
         }, {
           maxWait: 10000, // 10 seconds
@@ -353,6 +358,25 @@ export async function POST(request: NextRequest) {
         }
       }
       console.log(`Processed changes for ${changesProcessed}/${rows.length} players`);
+      
+      // Step 3.5: Verify and fix any player currentName inconsistencies
+      console.log('Verifying player currentName consistency...');
+      let nameFixCount = 0;
+      for (const data of rows) {
+        const player = await prisma.player.findUnique({
+          where: { lordId: data.lordId }
+        });
+        
+        if (player && player.currentName !== data.name) {
+          console.log(`Fixing player ${data.lordId} name: "${player.currentName}" -> "${data.name}"`);
+          await prisma.player.update({
+            where: { lordId: data.lordId },
+            data: { currentName: data.name }
+          });
+          nameFixCount++;
+        }
+      }
+      console.log(`Fixed ${nameFixCount} player name inconsistencies`);
       
       // Step 4: Mark players as "left realm" if they haven't been seen in recent snapshots
       console.log('Checking for players who may have left the realm...');
