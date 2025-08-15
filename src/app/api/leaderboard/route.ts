@@ -38,64 +38,11 @@ export async function GET(request: NextRequest) {
       whereClause.allianceTag = alliance;
     }
 
-    // Define sorting logic based on metric
-    const getOrderByClause = (): any => {
-      const sortOrder = order as 'asc' | 'desc';
-      
-      switch (sortBy) {
-        case 'currentPower':
-          return { currentPower: sortOrder };
-        case 'power':
-          return { power: sortOrder };
-        case 'merits':
-          return { merits: sortOrder };
-        case 'unitsKilled':
-          return { unitsKilled: sortOrder };
-        case 'unitsDead':
-          return { unitsDead: sortOrder };
-        case 'unitsHealed':
-          return { unitsHealed: sortOrder };
-        case 'buildingPower':
-          return { buildingPower: sortOrder };
-        case 'heroPower':
-          return { heroPower: sortOrder };
-        case 'legionPower':
-          return { legionPower: sortOrder };
-        case 'techPower':
-          return { techPower: sortOrder };
-        case 'gold':
-          return { gold: sortOrder };
-        case 'wood':
-          return { wood: sortOrder };
-        case 'ore':
-          return { ore: sortOrder };
-        case 'mana':
-          return { mana: sortOrder };
-        case 'gems':
-          return { gems: sortOrder };
-        case 'name':
-          return { name: sortOrder };
-        case 'cityLevel':
-          return { cityLevel: sortOrder };
-        case 'victories':
-          return { victories: sortOrder };
-        case 'defeats':
-          return { defeats: sortOrder };
-        case 'citySieges':
-          return { citySieges: sortOrder };
-        case 'scouted':
-          return { scouted: sortOrder };
-        case 'helpsGiven':
-          return { helpsGiven: sortOrder };
-        case 'division':
-          return { division: sortOrder };
-        case 'killDeathRatio':
-          return { unitsKilled: sortOrder };
-        case 'winRate':
-          return { victories: sortOrder };
-        default:
-          return { currentPower: 'desc' };
-      }
+    // Define if field needs numeric sorting (stored as String but should sort numerically)
+    const isNumericStringField = (field: string): boolean => {
+      return ['currentPower', 'power', 'merits', 'unitsKilled', 'unitsDead', 'unitsHealed', 
+              'buildingPower', 'heroPower', 'legionPower', 'techPower', 'gold', 'wood', 
+              'ore', 'mana', 'gems'].includes(field);
     };
 
     // Get total count for pagination
@@ -103,16 +50,74 @@ export async function GET(request: NextRequest) {
       where: whereClause
     });
 
-    // Fetch leaderboard data
-    const players = await prisma.playerSnapshot.findMany({
-      where: whereClause,
-      include: {
-        player: true
-      },
-      orderBy: getOrderByClause(),
-      skip: (page - 1) * limit,
-      take: limit
-    });
+    // Build the query with proper numeric sorting for string fields
+    let players;
+    
+    if (isNumericStringField(sortBy)) {
+      // Use raw SQL for numeric sorting on string fields
+      const allianceFilter = alliance !== 'all' ? `AND "allianceTag" = '${alliance}'` : '';
+      const sortDirection = order.toUpperCase();
+      
+      const rawQuery = `
+        SELECT ps.*, p."currentName", p."currentAlliance"
+        FROM "PlayerSnapshot" ps
+        JOIN "Player" p ON ps."playerId" = p."lordId"
+        WHERE ps."snapshotId" = '${latestSnapshot.id}' ${allianceFilter}
+        ORDER BY CAST(ps."${sortBy}" AS BIGINT) ${sortDirection}
+        LIMIT ${limit} OFFSET ${(page - 1) * limit}
+      `;
+      
+      const rawPlayers = await prisma.$queryRawUnsafe(rawQuery) as any[];
+      
+      // Transform to match expected structure
+      players = rawPlayers.map((row: any) => ({
+        ...row,
+        player: {
+          currentName: row.currentName,
+          currentAlliance: row.currentAlliance
+        }
+      }));
+    } else {
+      // Use standard Prisma sorting for non-numeric fields
+      const getOrderByClause = (): any => {
+        const sortOrder = order as 'asc' | 'desc';
+        
+        switch (sortBy) {
+          case 'name':
+            return { name: sortOrder };
+          case 'cityLevel':
+            return { cityLevel: sortOrder };
+          case 'victories':
+            return { victories: sortOrder };
+          case 'defeats':
+            return { defeats: sortOrder };
+          case 'citySieges':
+            return { citySieges: sortOrder };
+          case 'scouted':
+            return { scouted: sortOrder };
+          case 'helpsGiven':
+            return { helpsGiven: sortOrder };
+          case 'division':
+            return { division: sortOrder };
+          case 'killDeathRatio':
+            return { unitsKilled: sortOrder };
+          case 'winRate':
+            return { victories: sortOrder };
+          default:
+            return { currentPower: 'desc' };
+        }
+      };
+      
+      players = await prisma.playerSnapshot.findMany({
+        where: whereClause,
+        include: {
+          player: true
+        },
+        orderBy: getOrderByClause(),
+        skip: (page - 1) * limit,
+        take: limit
+      });
+    }
 
     // Get all unique alliances for filtering
     const alliances = await prisma.playerSnapshot.findMany({
