@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PlayerSearch } from '@/components/progress/PlayerSearch';
 import { ProgressChart } from '@/components/charts/ProgressChart';
 import { ProgressMetrics } from '@/components/progress/ProgressMetrics';
-import { TrendingUp, Calendar, BarChart3, Settings } from 'lucide-react';
+import { TrendingUp, Calendar, BarChart3, Settings, RefreshCw } from 'lucide-react';
 
 interface Player {
   lordId: string;
@@ -52,11 +53,67 @@ interface ProgressData {
 }
 
 export default function ProgressPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('30');
   const [chartMetric, setChartMetric] = useState<'power' | 'kills' | 'deaths' | 'merits'>('power');
+
+  // Load cached selections on mount
+  useEffect(() => {
+    const loadCachedData = async () => {
+      // First check URL parameters
+      const urlPlayerParam = searchParams.get('player');
+      if (urlPlayerParam) {
+        try {
+          // Fetch player data by ID
+          const response = await fetch(`/api/players/${urlPlayerParam}`);
+          if (response.ok) {
+            const playerData = await response.json();
+            const player: Player = {
+              lordId: playerData.lordId,
+              currentName: playerData.currentName,
+              currentPower: parseInt(playerData.currentPower || '0'),
+              allianceTag: playerData.currentAlliance,
+              lastSeen: playerData.lastSeen
+            };
+            setSelectedPlayers([player]);
+            // Save to localStorage
+            localStorage.setItem('progress-selected-players', JSON.stringify([player]));
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading player from URL:', error);
+        }
+      }
+
+      // Fallback to localStorage
+      try {
+        const cachedPlayers = localStorage.getItem('progress-selected-players');
+        const cachedTimeRange = localStorage.getItem('progress-time-range');
+        const cachedMetric = localStorage.getItem('progress-chart-metric');
+        
+        if (cachedPlayers) {
+          const players = JSON.parse(cachedPlayers);
+          setSelectedPlayers(players);
+        }
+        
+        if (cachedTimeRange) {
+          setTimeRange(cachedTimeRange);
+        }
+        
+        if (cachedMetric) {
+          setChartMetric(cachedMetric as 'power' | 'kills' | 'deaths' | 'merits');
+        }
+      } catch (error) {
+        console.error('Error loading cached data:', error);
+      }
+    };
+
+    loadCachedData();
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedPlayers.length > 0) {
@@ -87,12 +144,40 @@ export default function ProgressPage() {
 
   const handlePlayerAdd = (player: Player) => {
     if (selectedPlayers.length < 5 && !selectedPlayers.some(p => p.lordId === player.lordId)) {
-      setSelectedPlayers([...selectedPlayers, player]);
+      const newPlayers = [...selectedPlayers, player];
+      setSelectedPlayers(newPlayers);
+      // Cache to localStorage
+      localStorage.setItem('progress-selected-players', JSON.stringify(newPlayers));
     }
   };
 
   const handlePlayerRemove = (lordId: string) => {
-    setSelectedPlayers(selectedPlayers.filter(p => p.lordId !== lordId));
+    const newPlayers = selectedPlayers.filter(p => p.lordId !== lordId);
+    setSelectedPlayers(newPlayers);
+    // Cache to localStorage
+    localStorage.setItem('progress-selected-players', JSON.stringify(newPlayers));
+  };
+
+  const handleTimeRangeChange = (newTimeRange: string) => {
+    setTimeRange(newTimeRange);
+    // Cache to localStorage
+    localStorage.setItem('progress-time-range', newTimeRange);
+  };
+
+  const handleChartMetricChange = (newMetric: 'power' | 'kills' | 'deaths' | 'merits') => {
+    setChartMetric(newMetric);
+    // Cache to localStorage
+    localStorage.setItem('progress-chart-metric', newMetric);
+  };
+
+  const clearCache = () => {
+    localStorage.removeItem('progress-selected-players');
+    localStorage.removeItem('progress-time-range');
+    localStorage.removeItem('progress-chart-metric');
+    setSelectedPlayers([]);
+    setTimeRange('30');
+    setChartMetric('power');
+    setProgressData(null);
   };
 
   const getTimeRangeLabel = (days: string) => {
@@ -120,13 +205,28 @@ export default function ProgressPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-          <TrendingUp className="w-8 h-8 text-purple-500" />
-          Player Progress Tracking
-        </h1>
-        <p className="text-gray-400">
-          Analyze individual player growth and compare performance over time
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+              <TrendingUp className="w-8 h-8 text-purple-500" />
+              Player Progress Tracking
+            </h1>
+            <p className="text-gray-400">
+              Analyze individual player growth and compare performance over time
+            </p>
+          </div>
+          {selectedPlayers.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearCache}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Clear Selection
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Search and Controls */}
@@ -166,7 +266,7 @@ export default function ProgressPage() {
                   key={days}
                   variant={timeRange === days ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setTimeRange(days)}
+                  onClick={() => handleTimeRangeChange(days)}
                   className="w-full justify-start"
                 >
                   {getTimeRangeLabel(days)}
@@ -205,7 +305,7 @@ export default function ProgressPage() {
                         key={metric}
                         variant={chartMetric === metric ? 'default' : 'outline'}
                         size="sm"
-                        onClick={() => setChartMetric(metric)}
+                        onClick={() => handleChartMetricChange(metric)}
                       >
                         {getMetricLabel(metric)}
                       </Button>
