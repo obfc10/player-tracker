@@ -50,7 +50,8 @@ export default function DashboardLayout({
   ];
 
   const adminNavigation = [
-    { name: 'Upload Data', href: '/dashboard/upload', icon: Upload }
+    { name: 'Upload Data', href: '/dashboard/upload', icon: Upload },
+    { name: 'Manage Users', href: '/dashboard/admin/users', icon: UserCheck }
   ];
 
   const handleSignOut = () => {
@@ -179,6 +180,7 @@ export default function DashboardLayout({
                 {pathname === '/dashboard/alliance-moves' && 'Alliance Moves'}
                 {pathname === '/dashboard/name-changes' && 'Name Changes'}
                 {pathname === '/dashboard/upload' && 'Data Upload'}
+                {pathname === '/dashboard/admin/users' && 'User Management'}
                 {pathname.startsWith('/dashboard/player/') && 'Player Profile'}
                 {!pathname.includes('/dashboard/') && 'Dashboard'}
               </h2>
