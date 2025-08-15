@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 // Force dynamic rendering
 export const runtime = 'nodejs';
@@ -54,29 +55,47 @@ export async function GET(request: NextRequest) {
     let players;
     
     if (isNumericStringField(sortBy)) {
-      // Use raw SQL for numeric sorting on string fields
-      const allianceFilter = alliance !== 'all' ? `AND "allianceTag" = '${alliance}'` : '';
-      const sortDirection = order.toUpperCase();
+      // Use safe parameterized raw SQL for numeric sorting on string fields
+      const sortDirection = order.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
       
-      const rawQuery = `
-        SELECT ps.*, p."currentName", p."currentAlliance"
-        FROM "PlayerSnapshot" ps
-        JOIN "Player" p ON ps."playerId" = p."lordId"
-        WHERE ps."snapshotId" = '${latestSnapshot.id}' ${allianceFilter}
-        ORDER BY CAST(ps."${sortBy}" AS BIGINT) ${sortDirection}
-        LIMIT ${limit} OFFSET ${(page - 1) * limit}
-      `;
-      
-      const rawPlayers = await prisma.$queryRawUnsafe(rawQuery) as any[];
-      
-      // Transform to match expected structure
-      players = rawPlayers.map((row: any) => ({
-        ...row,
-        player: {
-          currentName: row.currentName,
-          currentAlliance: row.currentAlliance
-        }
-      }));
+      if (alliance !== 'all') {
+        // With alliance filter
+        const rawPlayers = await prisma.$queryRaw`
+          SELECT ps.*, p."currentName", p."currentAlliance"
+          FROM "PlayerSnapshot" ps
+          JOIN "Player" p ON ps."playerId" = p."lordId"
+          WHERE ps."snapshotId" = ${latestSnapshot.id}
+          AND ps."allianceTag" = ${alliance}
+          ORDER BY CAST(ps.${Prisma.raw(`"${sortBy}"`)} AS BIGINT) ${Prisma.raw(sortDirection)}
+          LIMIT ${limit} OFFSET ${(page - 1) * limit}
+        ` as any[];
+        
+        players = rawPlayers.map((row: any) => ({
+          ...row,
+          player: {
+            currentName: row.currentName,
+            currentAlliance: row.currentAlliance
+          }
+        }));
+      } else {
+        // Without alliance filter
+        const rawPlayers = await prisma.$queryRaw`
+          SELECT ps.*, p."currentName", p."currentAlliance"
+          FROM "PlayerSnapshot" ps
+          JOIN "Player" p ON ps."playerId" = p."lordId"
+          WHERE ps."snapshotId" = ${latestSnapshot.id}
+          ORDER BY CAST(ps.${Prisma.raw(`"${sortBy}"`)} AS BIGINT) ${Prisma.raw(sortDirection)}
+          LIMIT ${limit} OFFSET ${(page - 1) * limit}
+        ` as any[];
+        
+        players = rawPlayers.map((row: any) => ({
+          ...row,
+          player: {
+            currentName: row.currentName,
+            currentAlliance: row.currentAlliance
+          }
+        }));
+      }
     } else {
       // Use standard Prisma sorting for non-numeric fields
       const getOrderByClause = (): any => {
