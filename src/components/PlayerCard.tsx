@@ -138,21 +138,21 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
         {/* Overview Tab */}
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Power Growth</CardTitle>
+                <CardTitle className="text-white">Power Growth</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Daily Average</span>
-                    <span className="font-bold text-green-500">
+                    <span className="text-gray-300">Daily Average</span>
+                    <span className="font-bold text-green-400">
                       +{stats.averageDailyGrowth?.toLocaleString() || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Growth</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Total Growth</span>
+                    <span className="font-bold text-white">
                       {((latestSnapshot?.currentPower || 0) - 
                         (data.oldestSnapshot?.currentPower || 0)).toLocaleString()}
                     </span>
@@ -161,27 +161,27 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Combat Performance</CardTitle>
+                <CardTitle className="text-white">Combat Performance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>K/D Ratio</span>
-                    <span className="font-bold text-purple-500">
+                    <span className="text-gray-300">K/D Ratio</span>
+                    <span className="font-bold text-purple-400">
                       {stats.killDeathRatio}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Kills</span>
-                    <span className="font-bold text-green-500">
+                    <span className="text-gray-300">Total Kills</span>
+                    <span className="font-bold text-green-400">
                       {stats.totalKills?.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Total Deaths</span>
-                    <span className="font-bold text-red-500">
+                    <span className="text-gray-300">Total Deaths</span>
+                    <span className="font-bold text-red-400">
                       {stats.totalDeaths?.toLocaleString()}
                     </span>
                   </div>
@@ -189,21 +189,21 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Activity Level</CardTitle>
+                <CardTitle className="text-white">Activity Level</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Helps/Day</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Helps/Day</span>
+                    <span className="font-bold text-white">
                       {stats.activityLevel || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Resource Efficiency</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Resource Efficiency</span>
+                    <span className="font-bold text-white">
                       {stats.resourceEfficiency}%
                     </span>
                   </div>
@@ -216,9 +216,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
         {/* Power Tab */}
         <TabsContent value="power">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Power Breakdown</CardTitle>
+                <CardTitle className="text-white">Power Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.powerBreakdown && (
@@ -238,14 +238,22 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                         '#8B5CF6'  // purple
                       ]
                     }]
+                  }} options={{
+                    plugins: {
+                      legend: {
+                        labels: {
+                          color: '#D1D5DB' // gray-300 for dark theme
+                        }
+                      }
+                    }
                   }} />
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Power Trend</CardTitle>
+                <CardTitle className="text-white">Power Trend</CardTitle>
               </CardHeader>
               <CardContent>
                 {chartData?.powerTrend && (
@@ -262,6 +270,16 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                     responsive: true,
                     plugins: {
                       legend: { display: false }
+                    },
+                    scales: {
+                      x: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      },
+                      y: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      }
                     }
                   }} />
                 )}
@@ -273,45 +291,45 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
         {/* Combat Tab */}
         <TabsContent value="combat">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Combat Statistics</CardTitle>
+                <CardTitle className="text-white">Combat Statistics</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Units Killed</span>
-                    <span className="font-bold text-green-500">
+                    <span className="text-gray-300">Units Killed</span>
+                    <span className="font-bold text-green-400">
                       {latestSnapshot?.unitsKilled?.toLocaleString() || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Units Dead</span>
-                    <span className="font-bold text-red-500">
+                    <span className="text-gray-300">Units Dead</span>
+                    <span className="font-bold text-red-400">
                       {latestSnapshot?.unitsDead?.toLocaleString() || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Units Healed</span>
-                    <span className="font-bold text-blue-500">
+                    <span className="text-gray-300">Units Healed</span>
+                    <span className="font-bold text-blue-400">
                       {parseInt(latestSnapshot?.unitsHealed || '0').toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Victories</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Victories</span>
+                    <span className="font-bold text-white">
                       {latestSnapshot?.victories || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Defeats</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Defeats</span>
+                    <span className="font-bold text-white">
                       {latestSnapshot?.defeats || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Win Rate</span>
-                    <span className="font-bold text-purple-500">
+                    <span className="text-gray-300">Win Rate</span>
+                    <span className="font-bold text-purple-400">
                       {latestSnapshot?.victories && latestSnapshot?.defeats ? 
                         ((latestSnapshot.victories / (latestSnapshot.victories + latestSnapshot.defeats)) * 100).toFixed(1) : 
                         '0'}%
@@ -321,9 +339,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Kill Breakdown by Tier</CardTitle>
+                <CardTitle className="text-white">Kill Breakdown by Tier</CardTitle>
               </CardHeader>
               <CardContent>
                 {stats.killBreakdown && (
@@ -344,6 +362,16 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                     responsive: true,
                     plugins: {
                       legend: { display: false }
+                    },
+                    scales: {
+                      x: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      },
+                      y: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      }
                     }
                   }} />
                 )}
@@ -354,9 +382,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
 
         {/* Resources Tab */}
         <TabsContent value="resources">
-          <Card>
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle>Resource Management</CardTitle>
+              <CardTitle className="text-white">Resource Management</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
@@ -412,33 +440,33 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
         {/* Activity Tab */}
         <TabsContent value="activity">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Activity Metrics</CardTitle>
+                <CardTitle className="text-white">Activity Metrics</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Helps Given</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Helps Given</span>
+                    <span className="font-bold text-white">
                       {latestSnapshot?.helpsGiven || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>City Sieges</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">City Sieges</span>
+                    <span className="font-bold text-white">
                       {latestSnapshot?.citySieges || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Scouted</span>
-                    <span className="font-bold">
+                    <span className="text-gray-300">Scouted</span>
+                    <span className="font-bold text-white">
                       {latestSnapshot?.scouted || 0}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Merits</span>
-                    <span className="font-bold text-purple-500">
+                    <span className="text-gray-300">Merits</span>
+                    <span className="font-bold text-purple-400">
                       {latestSnapshot?.merits?.toLocaleString() || 0}
                     </span>
                   </div>
@@ -446,9 +474,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Activity Trend</CardTitle>
+                <CardTitle className="text-white">Activity Trend</CardTitle>
               </CardHeader>
               <CardContent>
                 {chartData?.activityTrend && (
@@ -471,7 +499,22 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   }} options={{
                     responsive: true,
                     plugins: {
-                      legend: { position: 'top' as const }
+                      legend: { 
+                        position: 'top' as const,
+                        labels: {
+                          color: '#D1D5DB'
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      },
+                      y: {
+                        ticks: { color: '#D1D5DB' },
+                        grid: { color: '#374151' }
+                      }
                     }
                   }} />
                 )}
@@ -484,9 +527,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
         <TabsContent value="history">
           <div className="space-y-6">
             {player.nameHistory?.length > 0 && (
-              <Card>
+              <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
-                  <CardTitle>Name History</CardTitle>
+                  <CardTitle className="text-white">Name History</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -508,9 +551,9 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
             )}
 
             {player.allianceHistory?.length > 0 && (
-              <Card>
+              <Card className="bg-gray-800 border-gray-700">
                 <CardHeader>
-                  <CardTitle>Alliance History</CardTitle>
+                  <CardTitle className="text-white">Alliance History</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 max-h-64 overflow-y-auto">
