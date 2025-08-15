@@ -30,7 +30,7 @@ interface Change {
 interface ChangesTableProps {
   changes: Change[];
   title: string;
-  type: 'gainers' | 'losers';
+  type: 'gainers' | 'losers' | 'smallestIncreases';
   metric: string;
   loading: boolean;
   onPlayerClick: (change: Change) => void;
@@ -103,6 +103,7 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
 
   const Icon = metricIcons[metric] || Zap;
   const isGainer = type === 'gainers';
+  const isSmallestIncrease = type === 'smallestIncreases';
 
   if (loading) {
     return (
@@ -111,6 +112,8 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
           <CardTitle className="text-white flex items-center gap-2">
             {isGainer ? (
               <TrendingUp className="w-5 h-5 text-green-400" />
+            ) : isSmallestIncrease ? (
+              <Target className="w-5 h-5 text-yellow-400" />
             ) : (
               <TrendingDown className="w-5 h-5 text-red-400" />
             )}
@@ -133,6 +136,8 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
           <CardTitle className="text-white flex items-center gap-2">
             {isGainer ? (
               <TrendingUp className="w-5 h-5 text-green-400" />
+            ) : isSmallestIncrease ? (
+              <Target className="w-5 h-5 text-yellow-400" />
             ) : (
               <TrendingDown className="w-5 h-5 text-red-400" />
             )}

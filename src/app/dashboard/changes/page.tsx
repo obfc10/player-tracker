@@ -68,6 +68,7 @@ interface Snapshot {
 interface ChangesData {
   gainers: Change[];
   losers: Change[];
+  smallestIncreases: Change[];
   summary: Summary;
   availableSnapshots: Snapshot[];
   alliances: string[];
@@ -185,7 +186,7 @@ export default function ChangesPage() {
           <div className="flex items-center gap-2">
             {data && (
               <ExportButton
-                data={[...data.gainers, ...data.losers].map(change => ({
+                data={[...data.gainers, ...data.losers, ...data.smallestIncreases].map(change => ({
                   playerName: change.currentName || change.name,
                   changeType: change.change > 0 ? 'Gain' : 'Loss',
                   field: selectedMetric,
@@ -355,12 +356,22 @@ export default function ChangesPage() {
 
       {/* Changes Tables */}
       {data && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Top Gainers */}
           <ChangesTable
             changes={data?.gainers || []}
             title="Top Gainers"
             type="gainers"
+            metric={selectedMetric}
+            loading={loading}
+            onPlayerClick={handlePlayerClick}
+          />
+
+          {/* Smallest Increases */}
+          <ChangesTable
+            changes={data?.smallestIncreases || []}
+            title="Smallest Increases"
+            type="smallestIncreases"
             metric={selectedMetric}
             loading={loading}
             onPlayerClick={handlePlayerClick}
@@ -396,20 +407,20 @@ export default function ChangesPage() {
             </div>
             <div className="p-4 bg-gray-700 rounded-lg">
               <h4 className="text-white font-medium mb-2 flex items-center gap-2">
+                <Target className="w-4 h-4 text-yellow-400" />
+                Smallest Increases
+              </h4>
+              <p className="text-gray-400">
+                Players with minimal growth. Useful for identifying underperforming or inactive accounts.
+              </p>
+            </div>
+            <div className="p-4 bg-gray-700 rounded-lg">
+              <h4 className="text-white font-medium mb-2 flex items-center gap-2">
                 <TrendingDown className="w-4 h-4 text-red-400" />
                 Performance Drops
               </h4>
               <p className="text-gray-400">
                 Players with significant decreases. Useful for identifying inactive or struggling players.
-              </p>
-            </div>
-            <div className="p-4 bg-gray-700 rounded-lg">
-              <h4 className="text-white font-medium mb-2 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-purple-400" />
-                Custom Periods
-              </h4>
-              <p className="text-gray-400">
-                Compare specific time periods for detailed trend analysis and seasonal patterns.
               </p>
             </div>
           </div>

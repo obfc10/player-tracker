@@ -161,13 +161,16 @@ export async function GET(request: NextRequest) {
     // Sort by absolute change value
     changes.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
-    // Separate gainers and losers
-    const gainers = changes
-      .filter(c => c.change > 0)
-      .slice(0, limit);
-
-    const losers = changes
-      .filter(c => c.change < 0)
+    // Separate gainers, losers, and smallest increases
+    const allGainers = changes.filter(c => c.change > 0);
+    const allLosers = changes.filter(c => c.change < 0);
+    
+    const gainers = allGainers.slice(0, limit);
+    const losers = allLosers.slice(0, limit);
+    
+    // Smallest increases: positive changes sorted by smallest change first
+    const smallestIncreases = allGainers
+      .sort((a, b) => a.change - b.change) // Sort by smallest change first
       .slice(0, limit);
 
     // Get available alliances for filtering
@@ -191,6 +194,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       gainers,
       losers,
+      smallestIncreases,
       summary: {
         totalPlayers,
         playersGained,
