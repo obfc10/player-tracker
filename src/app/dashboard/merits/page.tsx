@@ -117,8 +117,8 @@ export default function MeritsPage() {
 
   const formatRatio = (ratio: number) => {
     const num = ratio || 0;
-    if (isNaN(num)) return '0.0%';
-    return num.toFixed(1) + '%';
+    if (isNaN(num) || !isFinite(num)) return '0.0%';
+    return Math.min(Math.max(num, 0), 999999).toFixed(1) + '%';
   };
 
   const renderPlayerTable = (
@@ -360,7 +360,7 @@ export default function MeritsPage() {
           TrendingUp,
           (player) => ({
             value: formatNumber(player.meritGrowth || 0),
-            label: `+${(player.meritGrowthPercent || 0).toFixed(1)}%`
+            label: `+${Math.max(0, player.meritGrowthPercent || 0).toFixed(1)}%`
           })
         )}
       </div>

@@ -98,9 +98,9 @@ export async function GET(request: NextRequest) {
         merits: snapshot.merits,
         currentPower: snapshot.currentPower,
         unitsKilled: snapshot.unitsKilled,
-        meritPowerRatio: power > 0 ? (merits / power) * 100 : 0,
-        meritKillRatio: kills > 0 ? merits / kills : 0,
-        meritPerCityLevel: (snapshot.cityLevel || 0) > 0 ? merits / (snapshot.cityLevel || 1) : 0,
+        meritPowerRatio: power > 0 ? Math.min((merits / power) * 100, 999999) : 0,
+        meritKillRatio: kills > 0 ? Math.min(merits / kills, 999999) : 0,
+        meritPerCityLevel: (snapshot.cityLevel || 0) > 0 ? Math.min(merits / (snapshot.cityLevel || 1), 999999) : 0,
         rawMerits: merits,
         rawPower: power,
         rawKills: kills
@@ -125,7 +125,12 @@ export async function GET(request: NextRequest) {
       playersWithGrowth = playersWithMetrics.map(player => {
         const oldMerits = oldMeritsMap.get(player.playerId) || 0;
         const growth = player.rawMerits - oldMerits;
-        const growthPercent = oldMerits > 0 ? (growth / oldMerits) * 100 : 0;
+        let growthPercent = oldMerits > 0 ? (growth / oldMerits) * 100 : 0;
+        
+        // Ensure growthPercent is a valid number
+        if (!isFinite(growthPercent) || isNaN(growthPercent)) {
+          growthPercent = 0;
+        }
 
         return {
           ...player,
