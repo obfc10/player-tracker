@@ -32,7 +32,7 @@ export async function GET() {
         uploadedBy: {
           select: {
             name: true,
-            email: true
+            username: true
           }
         }
       },
