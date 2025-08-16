@@ -386,6 +386,8 @@ export async function POST(request: NextRequest) {
       const leftRealmCutoff = new Date(timestamp.getTime() - (7 * 24 * 60 * 60 * 1000));
       
       // Find players who haven't appeared in the last 7 days but were active before
+      // Only consider players who had significant power (10M+) to avoid marking low-power 
+      // players who just dropped below export threshold
       const playersToMarkAsLeft = await prisma.player.findMany({
         where: {
           AND: [
@@ -394,14 +396,33 @@ export async function POST(request: NextRequest) {
             { lastSeenAt: { lt: leftRealmCutoff } }, // Last seen more than 7 days ago
             { lastSeenAt: { not: null } } // Must have been seen before
           ]
+        },
+        include: {
+          snapshots: {
+            orderBy: { snapshot: { timestamp: 'desc' } },
+            take: 1, // Get their most recent snapshot to check power
+            include: { snapshot: true }
+          }
         }
       });
+
+      // Filter to only include players who had 10M+ power when last seen
+      const POWER_FLOOR = 10000000; // 10 million power
+      const significantPlayersToMarkAsLeft = playersToMarkAsLeft.filter(player => {
+        const lastSnapshot = player.snapshots[0];
+        if (!lastSnapshot) return false;
+        
+        const lastPower = parseInt(lastSnapshot.currentPower || '0');
+        return lastPower >= POWER_FLOOR;
+      });
       
-      if (playersToMarkAsLeft.length > 0) {
-        console.log(`Marking ${playersToMarkAsLeft.length} players as having left the realm`);
+      console.log(`Found ${playersToMarkAsLeft.length} absent players, ${significantPlayersToMarkAsLeft.length} with 10M+ power`);
+      
+      if (significantPlayersToMarkAsLeft.length > 0) {
+        console.log(`Marking ${significantPlayersToMarkAsLeft.length} players as having left the realm (10M+ power floor)`);
         await prisma.player.updateMany({
           where: {
-            lordId: { in: playersToMarkAsLeft.map(p => p.lordId) }
+            lordId: { in: significantPlayersToMarkAsLeft.map(p => p.lordId) }
           },
           data: {
             hasLeftRealm: true,
