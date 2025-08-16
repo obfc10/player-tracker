@@ -350,7 +350,7 @@ export default function UserManagementPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-medium">
-                        {user.name?.[0] || user.username[0].toUpperCase()}
+                        {user.name?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || '?'}
                       </span>
                     </div>
                     <div>
