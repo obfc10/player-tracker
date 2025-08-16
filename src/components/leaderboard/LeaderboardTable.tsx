@@ -191,7 +191,7 @@ export function LeaderboardTable({
             {columns.map(column => (
               <Button
                 key={column.key}
-                variant={selectedColumns.has(column.key) ? 'default' : 'outline'}
+                variant={selectedColumns.has(column.key) ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => toggleColumn(column.key)}
                 className="text-xs"

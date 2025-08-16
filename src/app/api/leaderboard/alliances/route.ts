@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 // Force dynamic rendering
@@ -7,13 +9,36 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const sortBy = searchParams.get('sortBy') || 'totalPower';
     const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
     const limit = parseInt(searchParams.get('limit') || '50');
+    const seasonMode = searchParams.get('seasonMode') || 'current';
+    const seasonId = searchParams.get('seasonId');
 
-    // Get the latest snapshot
+    // Determine which snapshots to query based on season selection
+    let snapshotFilter: any = {};
+    
+    if (seasonMode === 'current' || seasonMode === 'specific') {
+      // Get snapshots from specific season
+      const targetSeasonId = seasonMode === 'specific' && seasonId 
+        ? seasonId 
+        : (await prisma.season.findFirst({ where: { isActive: true } }))?.id;
+      
+      if (targetSeasonId) {
+        snapshotFilter.seasonId = targetSeasonId;
+      }
+    }
+    // For 'all-time' mode, we don't add any season filter
+
+    // Get the latest snapshot within the selected season/scope
     const latestSnapshot = await prisma.snapshot.findFirst({
+      where: snapshotFilter,
       orderBy: { timestamp: 'desc' }
     });
 

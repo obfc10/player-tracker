@@ -202,7 +202,7 @@ export default function LeftRealmPage() {
         {[7, 14, 30, 60, 90].map((days) => (
           <Button
             key={days}
-            variant={daysAgo === days ? 'default' : 'outline'}
+            variant={daysAgo === days ? 'secondary' : 'outline'}
             size="sm"
             onClick={() => {
               setDaysAgo(days);

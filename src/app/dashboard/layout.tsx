@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { SeasonProvider } from '@/contexts/SeasonContext';
 import { 
   LayoutDashboard, 
   Users, 
@@ -17,7 +18,9 @@ import {
   X,
   GitBranch,
   UserCheck,
-  UserX
+  UserX,
+  Award,
+  Calendar
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -43,6 +46,7 @@ export default function DashboardLayout({
     { name: 'Players', href: '/dashboard/players', icon: Users },
     { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
+    { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
     { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
@@ -51,7 +55,8 @@ export default function DashboardLayout({
 
   const adminNavigation = [
     { name: 'Upload Data', href: '/dashboard/upload', icon: Upload },
-    { name: 'Manage Users', href: '/dashboard/admin/users', icon: UserCheck }
+    { name: 'Manage Users', href: '/dashboard/admin/users', icon: UserCheck },
+    { name: 'Manage Seasons', href: '/dashboard/admin/seasons', icon: Calendar }
   ];
 
   const handleSignOut = () => {
@@ -73,7 +78,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gray-900">
+    <SeasonProvider>
+      <div className="flex h-screen bg-gray-900">
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-800 transition-all duration-300 flex-shrink-0`}>
         <div className="flex flex-col h-full">
@@ -176,11 +182,14 @@ export default function DashboardLayout({
                 {pathname === '/dashboard/players' && 'Player Database'}
                 {pathname === '/dashboard/progress' && 'Progress Tracking'}
                 {pathname === '/dashboard/leaderboard' && 'Leaderboards'}
+                {pathname === '/dashboard/merits' && 'Merit Analytics'}
                 {pathname === '/dashboard/changes' && 'Change Analysis'}
                 {pathname === '/dashboard/alliance-moves' && 'Alliance Moves'}
                 {pathname === '/dashboard/name-changes' && 'Name Changes'}
+                {pathname === '/dashboard/left-realm' && 'Left Realm'}
                 {pathname === '/dashboard/upload' && 'Data Upload'}
                 {pathname === '/dashboard/admin/users' && 'User Management'}
+                {pathname === '/dashboard/admin/seasons' && 'Season Management'}
                 {pathname.startsWith('/dashboard/player/') && 'Player Profile'}
                 {!pathname.includes('/dashboard/') && 'Dashboard'}
               </h2>
@@ -200,5 +209,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </SeasonProvider>
   );
 }

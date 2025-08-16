@@ -264,7 +264,7 @@ export default function ProgressPage() {
               {['7', '14', '30', '60', '90'].map((days) => (
                 <Button
                   key={days}
-                  variant={timeRange === days ? 'default' : 'outline'}
+                  variant={timeRange === days ? 'secondary' : 'outline'}
                   size="sm"
                   onClick={() => handleTimeRangeChange(days)}
                   className="w-full justify-start"
@@ -303,7 +303,7 @@ export default function ProgressPage() {
                     {(['power', 'kills', 'deaths', 'merits'] as const).map((metric) => (
                       <Button
                         key={metric}
-                        variant={chartMetric === metric ? 'default' : 'outline'}
+                        variant={chartMetric === metric ? 'secondary' : 'outline'}
                         size="sm"
                         onClick={() => handleChartMetricChange(metric)}
                       >

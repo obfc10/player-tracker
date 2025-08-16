@@ -229,5 +229,18 @@ export const ExportConfigs = {
       { key: 'similarity', header: 'Similarity Score', type: 'number' as const, width: 15 },
       { key: 'timestamp', header: 'Change Date', type: 'date' as const, width: 18 }
     ] as ExportColumn[]
+  },
+
+  merits: {
+    columns: [
+      { key: 'playerName', header: 'Player Name', width: 20 },
+      { key: 'alliance', header: 'Alliance', width: 20 },
+      { key: 'merits', header: 'Total Merits', type: 'number' as const, width: 15 },
+      { key: 'power', header: 'Power', type: 'number' as const, width: 15 },
+      { key: 'meritPowerRatio', header: 'Merit/Power Ratio (%)', type: 'number' as const, width: 18 },
+      { key: 'meritKillRatio', header: 'Merit/Kill Ratio', type: 'number' as const, width: 15 },
+      { key: 'cityLevel', header: 'City Level', type: 'number' as const, width: 12 },
+      { key: 'division', header: 'Division', type: 'number' as const, width: 10 }
+    ] as ExportColumn[]
   }
 };

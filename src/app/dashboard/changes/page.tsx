@@ -227,7 +227,7 @@ export default function ChangesPage() {
                 return (
                   <Button
                     key={metric.key}
-                    variant={isSelected ? 'default' : 'outline'}
+                    variant={isSelected ? 'secondary' : 'outline'}
                     size="sm"
                     onClick={() => handleMetricChange(metric.key)}
                     className="flex items-center gap-2 text-xs"
@@ -251,7 +251,7 @@ export default function ChangesPage() {
               {compareTypes.map(type => (
                 <Button
                   key={type.key}
-                  variant={compareType === type.key ? 'default' : 'outline'}
+                  variant={compareType === type.key ? 'secondary' : 'outline'}
                   size="sm"
                   onClick={() => setCompareType(type.key)}
                   className="w-full justify-start"
@@ -335,7 +335,7 @@ export default function ChangesPage() {
               {['10', '25', '50', '100'].map(limitOption => (
                 <Button
                   key={limitOption}
-                  variant={limit === limitOption ? 'default' : 'outline'}
+                  variant={limit === limitOption ? 'secondary' : 'outline'}
                   size="sm"
                   onClick={() => setLimit(limitOption)}
                   className="text-xs"

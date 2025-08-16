@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSeason } from '@/contexts/SeasonContext';
+import { SeasonSelector } from '@/components/SeasonSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AllianceChart } from '@/components/charts/AllianceChart';
@@ -36,16 +38,21 @@ interface DashboardStats {
 }
 
 export default function OverviewPage() {
+  const { selectedSeasonMode, selectedSeasonId } = useSeason();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [selectedSeasonMode, selectedSeasonId]);
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/dashboard/stats');
+      const params = new URLSearchParams({
+        seasonMode: selectedSeasonMode,
+        ...(selectedSeasonId && { seasonId: selectedSeasonId })
+      });
+      const response = await fetch(`/api/dashboard/stats?${params}`);
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -100,6 +107,9 @@ export default function OverviewPage() {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Season Selection */}
+      <SeasonSelector />
+      
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-white mb-2">Kingdom {stats.snapshotInfo?.kingdom} Overview</h1>

@@ -31,6 +31,21 @@ enum UserStatus {
   REJECTED
 }
 
+model Season {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean    @default(false)
+  description String?
+  snapshots   Snapshot[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([isActive])
+  @@index([startDate])
+}
+
 model Player {
   lordId           String            @id
   currentName      String
@@ -147,11 +162,14 @@ model Snapshot {
   kingdom     String
   upload      Upload           @relation(fields: [uploadId], references: [id], onDelete: Cascade)
   uploadId    String
+  season      Season?          @relation(fields: [seasonId], references: [id])
+  seasonId    String?
   players     PlayerSnapshot[]
   createdAt   DateTime         @default(now())
   
   @@index([timestamp])
   @@index([kingdom])
+  @@index([seasonId])
 }
 
 model Upload {
