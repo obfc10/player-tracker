@@ -178,20 +178,23 @@ export default function DashboardLayout({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <h2 className="text-lg font-semibold text-white">
-                {pathname === '/dashboard/overview' && 'Kingdom Overview'}
-                {pathname === '/dashboard/players' && 'Player Database'}
-                {pathname === '/dashboard/progress' && 'Progress Tracking'}
-                {pathname === '/dashboard/leaderboard' && 'Leaderboards'}
-                {pathname === '/dashboard/merits' && 'Merit Analytics'}
-                {pathname === '/dashboard/changes' && 'Change Analysis'}
-                {pathname === '/dashboard/alliance-moves' && 'Alliance Moves'}
-                {pathname === '/dashboard/name-changes' && 'Name Changes'}
-                {pathname === '/dashboard/left-realm' && 'Left Realm'}
-                {pathname === '/dashboard/upload' && 'Data Upload'}
-                {pathname === '/dashboard/admin/users' && 'User Management'}
-                {pathname === '/dashboard/admin/seasons' && 'Season Management'}
-                {pathname.startsWith('/dashboard/player/') && 'Player Profile'}
-                {!pathname.includes('/dashboard/') && 'Dashboard'}
+                {(() => {
+                  if (pathname === '/dashboard/overview') return 'Kingdom Overview';
+                  if (pathname === '/dashboard/players') return 'Player Database';
+                  if (pathname === '/dashboard/progress') return 'Progress Tracking';
+                  if (pathname === '/dashboard/leaderboard') return 'Leaderboards';
+                  if (pathname === '/dashboard/merits') return 'Merit Analytics';
+                  if (pathname === '/dashboard/changes') return 'Change Analysis';
+                  if (pathname === '/dashboard/alliance-moves') return 'Alliance Moves';
+                  if (pathname === '/dashboard/name-changes') return 'Name Changes';
+                  if (pathname === '/dashboard/left-realm') return 'Left Realm';
+                  if (pathname === '/dashboard/upload') return 'Data Upload';
+                  if (pathname === '/dashboard/admin/users') return 'User Management';
+                  if (pathname === '/dashboard/admin/seasons') return 'Season Management';
+                  if (pathname.startsWith('/dashboard/player/')) return 'Player Profile';
+                  if (!pathname.includes('/dashboard/')) return 'Dashboard';
+                  return 'Dashboard';
+                })()}
               </h2>
             </div>
             <div className="flex items-center gap-4">
