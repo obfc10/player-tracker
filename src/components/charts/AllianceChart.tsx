@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,10 +35,24 @@ interface AllianceChartProps {
 }
 
 export function AllianceChart({ data, type }: AllianceChartProps) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
   // Sort data and take top 10 for better visualization
   const sortedData = [...data]
     .sort((a, b) => type === 'members' ? b.memberCount - a.memberCount : b.totalPower - a.totalPower)
     .slice(0, 10);
+
+  if (!hasMounted) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
 
   const formatNumber = (num: number) => {
     if (num >= 1000000000) {

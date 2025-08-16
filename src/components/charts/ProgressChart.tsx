@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,6 +49,20 @@ interface ProgressChartProps {
 }
 
 export function ProgressChart({ players, metric }: ProgressChartProps) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return (
+      <div className="h-80 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
   const formatNumber = (num: number) => {
     if (num >= 1000000000) {
       return (num / 1000000000).toFixed(1) + 'B';
