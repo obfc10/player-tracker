@@ -94,7 +94,8 @@ export default function MeritsPage() {
   };
 
   const formatNumber = (value: string | number) => {
-    const num = typeof value === 'string' ? parseInt(value) : value;
+    const num = typeof value === 'string' ? parseInt(value) || 0 : value || 0;
+    if (isNaN(num)) return '0';
     if (num >= 1000000) {
       return (num / 1000000).toFixed(1) + 'M';
     } else if (num >= 1000) {
@@ -104,7 +105,9 @@ export default function MeritsPage() {
   };
 
   const formatRatio = (ratio: number) => {
-    return ratio.toFixed(1) + '%';
+    const num = ratio || 0;
+    if (isNaN(num)) return '0.0%';
+    return num.toFixed(1) + '%';
   };
 
   const renderPlayerTable = (
@@ -182,20 +185,20 @@ export default function MeritsPage() {
           <div className="flex items-center gap-2">
             {data && (
               <ExportButton
-                data={[...data.topMerits, ...data.topEfficiency].map(player => ({
-                  playerName: player.currentName || player.name,
+                data={[...(data.topMerits || []), ...(data.topEfficiency || [])].map(player => ({
+                  playerName: player.currentName || player.name || '',
                   alliance: player.allianceTag || '',
-                  merits: player.merits,
-                  power: player.currentPower,
-                  meritPowerRatio: player.meritPowerRatio,
-                  meritKillRatio: player.meritKillRatio,
-                  cityLevel: player.cityLevel,
-                  division: player.division
+                  merits: player.merits || '0',
+                  power: player.currentPower || '0',
+                  meritPowerRatio: player.meritPowerRatio || 0,
+                  meritKillRatio: player.meritKillRatio || 0,
+                  cityLevel: player.cityLevel || 0,
+                  division: player.division || 0
                 }))}
                 exportConfig={ExportConfigs.merits}
                 filename={`merit_analytics_${new Date().toISOString().split('T')[0]}`}
                 title="Kingdom 671 - Merit Analytics"
-                subtitle={`${data.kingdomStats.totalPlayers} players analyzed | Export generated on ${new Date().toLocaleDateString()}`}
+                subtitle={`${data.kingdomStats?.totalPlayers || 0} players analyzed | Export generated on ${new Date().toLocaleDateString()}`}
                 variant="outline"
                 size="sm"
               />
@@ -294,7 +297,7 @@ export default function MeritsPage() {
                 <div>
                   <p className="text-gray-400 text-sm">Players Analyzed</p>
                   <p className="text-2xl font-bold text-purple-400">
-                    {data.kingdomStats.totalPlayers.toLocaleString()}
+                    {(data.kingdomStats.totalPlayers || 0).toLocaleString()}
                   </p>
                 </div>
                 <Users className="w-8 h-8 text-purple-400" />
