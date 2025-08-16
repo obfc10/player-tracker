@@ -168,8 +168,8 @@ export default function MeritsPage() {
                             {player.allianceTag}
                           </Badge>
                         )}
-                        <span className="text-gray-400">Lv.{player.cityLevel || 0}</span>
-                        <span className="text-gray-400">Div.{player.division || 0}</span>
+                        <span className="text-gray-400">Lv.{player.cityLevel || '0'}</span>
+                        <span className="text-gray-400">Div.{player.division || '0'}</span>
                       </div>
                     </div>
                   </div>

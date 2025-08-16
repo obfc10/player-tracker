@@ -94,7 +94,7 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   Division: {latestSnapshot?.division || 'Unknown'}
                 </p>
                 <p className="text-gray-200">
-                  City Level: {latestSnapshot?.cityLevel || 0}
+                  City Level: {latestSnapshot?.cityLevel || '0'}
                 </p>
                 <p className="text-gray-200">
                   Faction: {latestSnapshot?.faction || 'None'}
@@ -103,15 +103,15 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-yellow-400">
-                {latestSnapshot?.currentPower?.toLocaleString() || 0}
+                {latestSnapshot?.currentPower?.toLocaleString() || '0'}
               </div>
               <p className="text-gray-200">Current Power</p>
               <div className="mt-4 space-y-1">
                 <p className="text-sm text-gray-300">
-                  Days Tracked: {stats.daysTracked || 0}
+                  Days Tracked: {stats.daysTracked || '0'}
                 </p>
                 <p className="text-sm text-gray-300">
-                  Data Points: {data.snapshotCount || 0}
+                  Data Points: {data.snapshotCount || '0'}
                 </p>
                 <p className="text-sm text-gray-300">
                   Last Update: {latestSnapshot ? 
@@ -147,7 +147,7 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Daily Average</span>
                     <span className="font-bold text-green-400">
-                      +{stats.averageDailyGrowth?.toLocaleString() || 0}
+                      +{stats.averageDailyGrowth?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -198,7 +198,7 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Helps/Day</span>
                     <span className="font-bold text-white">
-                      {stats.activityLevel || 0}
+                      {stats.activityLevel || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -300,13 +300,13 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Units Killed</span>
                     <span className="font-bold text-green-400">
-                      {latestSnapshot?.unitsKilled?.toLocaleString() || 0}
+                      {latestSnapshot?.unitsKilled?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Units Dead</span>
                     <span className="font-bold text-red-400">
-                      {latestSnapshot?.unitsDead?.toLocaleString() || 0}
+                      {latestSnapshot?.unitsDead?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -318,13 +318,13 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Victories</span>
                     <span className="font-bold text-white">
-                      {latestSnapshot?.victories || 0}
+                      {latestSnapshot?.victories || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Defeats</span>
                     <span className="font-bold text-white">
-                      {latestSnapshot?.defeats || 0}
+                      {latestSnapshot?.defeats || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -428,7 +428,7 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between items-center">
                     <span className="text-white">Donation Count</span>
                     <span className="font-bold text-yellow-400">
-                      {latestSnapshot?.resourcesGivenCount || 0}
+                      {latestSnapshot?.resourcesGivenCount || '0'}
                     </span>
                   </div>
                 </div>
@@ -449,25 +449,25 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                   <div className="flex justify-between">
                     <span className="text-gray-300">Helps Given</span>
                     <span className="font-bold text-white">
-                      {latestSnapshot?.helpsGiven || 0}
+                      {latestSnapshot?.helpsGiven || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">City Sieges</span>
                     <span className="font-bold text-white">
-                      {latestSnapshot?.citySieges || 0}
+                      {latestSnapshot?.citySieges || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Scouted</span>
                     <span className="font-bold text-white">
-                      {latestSnapshot?.scouted || 0}
+                      {latestSnapshot?.scouted || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-300">Merits</span>
                     <span className="font-bold text-purple-400">
-                      {latestSnapshot?.merits?.toLocaleString() || 0}
+                      {latestSnapshot?.merits?.toLocaleString() || '0'}
                     </span>
                   </div>
                 </div>

@@ -86,9 +86,9 @@ export default function PlayersPage() {
                   <td className="p-2">{player.lordId}</td>
                   <td className="p-2">{player.name}</td>
                   <td className="p-2">{latest?.allianceTag || '-'}</td>
-                  <td className="p-2 text-right">{latest?.currentPower?.toLocaleString() || 0}</td>
-                  <td className="p-2 text-right">{latest?.unitsKilled?.toLocaleString() || 0}</td>
-                  <td className="p-2 text-right">{latest?.unitsDead?.toLocaleString() || 0}</td>
+                  <td className="p-2 text-right">{latest?.currentPower?.toLocaleString() || '0'}</td>
+                  <td className="p-2 text-right">{latest?.unitsKilled?.toLocaleString() || '0'}</td>
+                  <td className="p-2 text-right">{latest?.unitsDead?.toLocaleString() || '0'}</td>
                 </tr>
               );
             })}
