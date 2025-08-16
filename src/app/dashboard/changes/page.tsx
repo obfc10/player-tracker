@@ -104,10 +104,11 @@ export default function ChangesPage() {
   const [selectedAlliance, setSelectedAlliance] = useState('all');
   const [fromSnapshot, setFromSnapshot] = useState('');
   const [toSnapshot, setToSnapshot] = useState('');
+  const [limit, setLimit] = useState('25');
 
   useEffect(() => {
     fetchChangesData();
-  }, [selectedMetric, compareType, selectedAlliance, fromSnapshot, toSnapshot]);
+  }, [selectedMetric, compareType, selectedAlliance, fromSnapshot, toSnapshot, limit]);
 
   const fetchChangesData = async () => {
     setLoading(true);
@@ -116,7 +117,7 @@ export default function ChangesPage() {
         metric: selectedMetric,
         compareType,
         alliance: selectedAlliance,
-        limit: '20'
+        limit
       });
 
       if (compareType === 'custom' && fromSnapshot && toSnapshot) {
@@ -212,7 +213,7 @@ export default function ChangesPage() {
       </div>
 
       {/* Control Filters */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Metric Selection */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
@@ -321,6 +322,28 @@ export default function ChangesPage() {
                 </Badge>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Results Limit */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white text-sm">Results Limit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {['10', '25', '50', '100'].map(limitOption => (
+                <Button
+                  key={limitOption}
+                  variant={limit === limitOption ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setLimit(limitOption)}
+                  className="text-xs"
+                >
+                  {limitOption}
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

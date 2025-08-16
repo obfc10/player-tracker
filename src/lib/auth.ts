@@ -31,15 +31,25 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
           
+          // Check if user is approved
+          if (user.status !== 'APPROVED') {
+            // Return a special error that the frontend can handle
+            throw new Error(`ACCOUNT_${user.status}`);
+          }
+          
           return { 
             id: user.id, 
             username: user.username,
-            email: user.email, 
             name: user.name, 
-            role: user.role 
+            role: user.role,
+            status: user.status
           };
         } catch (error) {
           console.error('Auth error:', error);
+          // Re-throw approval status errors so they can be handled by the frontend
+          if (error instanceof Error && error.message.startsWith('ACCOUNT_')) {
+            throw error;
+          }
           return null;
         }
       }

@@ -9,20 +9,26 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  email     String?
+  id        String      @id @default(cuid())
+  username  String      @unique
   password  String
   name      String?
-  role      Role     @default(VIEWER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      Role        @default(VIEWER)
+  status    UserStatus  @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   uploads   Upload[]
 }
 
 enum Role {
   ADMIN
   VIEWER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 model Player {

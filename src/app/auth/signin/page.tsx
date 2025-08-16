@@ -26,7 +26,16 @@ export default function SignInPage() {
       });
 
       if (result?.error) {
-        setError('Invalid username or password');
+        // Handle different error types
+        if (result.error === 'CredentialsSignin') {
+          setError('Invalid username or password');
+        } else if (result.error.includes('ACCOUNT_PENDING')) {
+          setError('Your account is pending approval from an administrator. Please wait for approval before signing in.');
+        } else if (result.error.includes('ACCOUNT_REJECTED')) {
+          setError('Your account has been rejected. Please contact an administrator for more information.');
+        } else {
+          setError('Invalid username or password');
+        }
       } else {
         // Check session and redirect
         const session = await getSession();
@@ -43,15 +52,15 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Player Tracker</CardTitle>
-          <p className="text-gray-600">Sign in to your account</p>
+          <CardTitle className="text-2xl font-bold text-white">Player Tracker</CardTitle>
+          <p className="text-gray-400">Sign in to your account</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-1">
+              <label htmlFor="username" className="block text-sm font-medium mb-1 text-gray-300">
                 Username
               </label>
               <input
@@ -59,12 +68,12 @@ export default function SignInPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1">
+              <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-300">
                 Password
               </label>
               <input
@@ -72,12 +81,12 @@ export default function SignInPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                 required
               />
             </div>
             {error && (
-              <div className="text-red-600 text-sm">{error}</div>
+              <div className="text-red-400 text-sm">{error}</div>
             )}
             <Button 
               type="submit" 
@@ -88,10 +97,13 @@ export default function SignInPage() {
             </Button>
           </form>
           
-          <div className="mt-6 p-4 bg-gray-50 rounded-md">
-            <p className="text-sm text-gray-600 mb-2">Demo Account:</p>
-            <p className="text-xs text-gray-500">Username: admin</p>
-            <p className="text-xs text-gray-500">Password: admin123</p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-400">
+              Need an account?{' '}
+              <a href="/auth/register" className="text-purple-400 hover:text-purple-300 underline">
+                Register here
+              </a>
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         username: true,
-        email: true,
         name: true,
         role: true,
+        status: true,
         createdAt: true,
         updatedAt: true
       },
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { username, email, name, role = 'VIEWER' } = await request.json();
+    const { username, name, role = 'VIEWER' } = await request.json();
 
     if (!username || username.length < 3) {
       return NextResponse.json({ error: 'Username must be at least 3 characters' }, { status: 400 });
@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         username,
-        email: email || null,
         name: name || null,
         password: hashedPassword,
         role: role as 'ADMIN' | 'VIEWER'
@@ -74,7 +73,6 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         username: true,
-        email: true,
         name: true,
         role: true,
         createdAt: true
