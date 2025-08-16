@@ -180,7 +180,7 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8 h-8 bg-gray-600 rounded-full text-sm font-bold text-white">
-                  {index + 1}
+                  {(index + 1).toString()}
                 </div>
                 <div>
                   <p className="text-white font-medium">{change.name}</p>

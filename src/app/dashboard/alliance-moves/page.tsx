@@ -370,7 +370,7 @@ export default function AllianceMovesPage() {
               {data.summary.mostActiveAlliances.map((alliance, index) => (
                 <div key={alliance.alliance} className="text-center p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full text-sm font-bold mx-auto mb-2">
-                    {index + 1}
+                    {(index + 1).toString()}
                   </div>
                   <p className="text-white font-medium">{alliance.alliance}</p>
                   <p className="text-blue-400 text-sm">{alliance.joinCount} joins</p>

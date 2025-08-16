@@ -400,7 +400,7 @@ export default function NameChangesPage() {
               {data.summary.mostActiveChangers.map((changer, index) => (
                 <div key={changer.playerId} className="text-center p-4 bg-gray-700 rounded-lg">
                   <div className="flex items-center justify-center w-8 h-8 bg-purple-600 rounded-full text-sm font-bold mx-auto mb-2">
-                    {index + 1}
+                    {(index + 1).toString()}
                   </div>
                   <p className="text-white font-medium truncate">{changer.playerName}</p>
                   <p className="text-purple-400 text-sm">{changer.changeCount} changes</p>

@@ -158,7 +158,7 @@ export default function MeritsPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">#{index + 1}</span>
+                      <span className="text-white font-bold text-sm">#{(index + 1).toString()}</span>
                     </div>
                     <div>
                       <p className="text-white font-medium">{player.currentName || player.name}</p>

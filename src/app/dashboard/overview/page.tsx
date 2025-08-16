@@ -224,7 +224,7 @@ export default function OverviewPage() {
               <div key={player.lordId} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center justify-center w-8 h-8 bg-purple-600 rounded-full text-sm font-bold">
-                    {index + 1}
+                    {(index + 1).toString()}
                   </div>
                   <div>
                     <p className="text-white font-medium">{player.name}</p>
