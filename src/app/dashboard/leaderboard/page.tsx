@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSeason } from '@/contexts/SeasonContext';
-import { SeasonSelector } from '@/components/SeasonSelector';
+// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -221,7 +221,7 @@ export default function LeaderboardPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Season Selection */}
-      <SeasonSelector />
+      {/* <SeasonSelector /> */}
       
       {/* Header */}
       <div className="mb-6">

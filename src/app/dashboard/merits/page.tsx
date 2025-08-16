@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSeason } from '@/contexts/SeasonContext';
-import { SeasonSelector } from '@/components/SeasonSelector';
+// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -237,7 +237,7 @@ export default function MeritsPage() {
 
       {/* Season and Timeframe Selection */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SeasonSelector />
+        {/* <SeasonSelector /> */}
         
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
