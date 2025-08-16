@@ -56,10 +56,21 @@ interface MeritData {
 
 export default function MeritsPage() {
   const router = useRouter();
-  const { selectedSeasonMode, selectedSeasonId } = useSeason();
+  const { selectedSeasonMode, selectedSeasonId, loading: seasonLoading } = useSeason();
   const [data, setData] = useState<MeritData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('current'); // current, week, month
+
+  // Don't render until season context is loaded
+  if (seasonLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchMeritData();
@@ -70,7 +81,7 @@ export default function MeritsPage() {
     try {
       const params = new URLSearchParams({ 
         timeframe,
-        seasonMode: selectedSeasonMode,
+        seasonMode: selectedSeasonMode || 'current',
         ...(selectedSeasonId && { seasonId: selectedSeasonId })
       });
       const response = await fetch(`/api/merits?${params}`);
@@ -150,8 +161,8 @@ export default function MeritsPage() {
                             {player.allianceTag}
                           </Badge>
                         )}
-                        <span className="text-gray-400">Lv.{player.cityLevel}</span>
-                        <span className="text-gray-400">Div.{player.division}</span>
+                        <span className="text-gray-400">Lv.{player.cityLevel || 0}</span>
+                        <span className="text-gray-400">Div.{player.division || 0}</span>
                       </div>
                     </div>
                   </div>

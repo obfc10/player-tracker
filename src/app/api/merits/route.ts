@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
         name: snapshot.name,
         currentName: snapshot.player.currentName,
         allianceTag: snapshot.allianceTag,
-        division: snapshot.division,
-        cityLevel: snapshot.cityLevel,
+        division: snapshot.division || 0,
+        cityLevel: snapshot.cityLevel || 0,
         merits: snapshot.merits,
         currentPower: snapshot.currentPower,
         unitsKilled: snapshot.unitsKilled,
         meritPowerRatio: power > 0 ? (merits / power) * 100 : 0,
         meritKillRatio: kills > 0 ? merits / kills : 0,
-        meritPerCityLevel: snapshot.cityLevel > 0 ? merits / snapshot.cityLevel : 0,
+        meritPerCityLevel: (snapshot.cityLevel || 0) > 0 ? merits / (snapshot.cityLevel || 1) : 0,
         rawMerits: merits,
         rawPower: power,
         rawKills: kills
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
         averageEfficiency: averageEfficiency,
         totalPlayers: playersWithMetrics.length
       },
-      timeframe: timeframe === 'current' ? `Current (${latestSnapshot.timestamp.toISOString().split('T')[0]})` 
+      timeframe: timeframe === 'current' ? `Current (${latestSnapshot?.timestamp?.toISOString().split('T')[0] || 'Unknown'})` 
         : timeframe === 'week' ? 'Past 7 Days' 
         : 'Past 30 Days'
     });
