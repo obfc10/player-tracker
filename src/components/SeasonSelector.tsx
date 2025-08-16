@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +29,16 @@ export function SeasonSelector({ compact = false, className = '' }: SeasonSelect
   } = useSeason();
   
   const [isOpen, setIsOpen] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const getCurrentDisplayText = () => {
+    if (!hasMounted) {
+      return 'Loading...';
+    }
     if (selectedSeasonMode === 'all-time') {
       return 'All Time Data';
     } else if (selectedSeasonMode === 'current' && currentSeason) {
@@ -47,7 +55,7 @@ export function SeasonSelector({ compact = false, className = '' }: SeasonSelect
     setIsOpen(false);
   };
 
-  if (loading) {
+  if (loading || !hasMounted) {
     return (
       <div className={`animate-pulse ${className}`}>
         <div className="h-10 bg-gray-700 rounded"></div>

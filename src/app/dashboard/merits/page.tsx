@@ -60,13 +60,20 @@ export default function MeritsPage() {
   const [data, setData] = useState<MeritData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('current'); // current, week, month
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    fetchMeritData();
-  }, [timeframe, selectedSeasonMode, selectedSeasonId]);
+    setHasMounted(true);
+  }, []);
 
-  // Don't render until season context is loaded
-  if (seasonLoading) {
+  useEffect(() => {
+    if (hasMounted) {
+      fetchMeritData();
+    }
+  }, [timeframe, selectedSeasonMode, selectedSeasonId, hasMounted]);
+
+  // Don't render until season context is loaded and component has mounted
+  if (seasonLoading || !hasMounted) {
     return (
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-center h-64">
