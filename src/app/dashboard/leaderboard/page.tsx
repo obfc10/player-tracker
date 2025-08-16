@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSeason } from '@/contexts/SeasonContext';
-import { SeasonSelector } from '@/components/SeasonSelector';
+// import { useSeason } from '@/contexts/SeasonContext';
+// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -90,7 +90,7 @@ interface AllianceLeaderboardData {
 
 export default function LeaderboardPage() {
   const router = useRouter();
-  const { selectedSeasonMode, selectedSeasonId } = useSeason();
+  // const { selectedSeasonMode, selectedSeasonId } = useSeason();
   const [playerData, setPlayerData] = useState<LeaderboardData | null>(null);
   const [allianceData, setAllianceData] = useState<AllianceLeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,7 +112,7 @@ export default function LeaderboardPage() {
     } else {
       fetchAllianceLeaderboard();
     }
-  }, [activeTab, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder, selectedSeasonMode, selectedSeasonId]);
+  }, [activeTab, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder /* , selectedSeasonMode, selectedSeasonId */]);
 
   const fetchPlayerLeaderboard = async () => {
     setLoading(true);
@@ -122,9 +122,9 @@ export default function LeaderboardPage() {
         order: playerOrder,
         alliance: selectedAlliance,
         page: currentPage.toString(),
-        limit: '25',
-        seasonMode: selectedSeasonMode,
-        ...(selectedSeasonId && { seasonId: selectedSeasonId })
+        limit: '25'
+        // seasonMode: selectedSeasonMode,
+        // ...(selectedSeasonId && { seasonId: selectedSeasonId })
       });
 
       const response = await fetch(`/api/leaderboard?${params}`);
@@ -144,9 +144,9 @@ export default function LeaderboardPage() {
     try {
       const params = new URLSearchParams({
         sortBy: allianceSortBy,
-        order: allianceOrder,
-        seasonMode: selectedSeasonMode,
-        ...(selectedSeasonId && { seasonId: selectedSeasonId })
+        order: allianceOrder
+        // seasonMode: selectedSeasonMode,
+        // ...(selectedSeasonId && { seasonId: selectedSeasonId })
       });
 
       const response = await fetch(`/api/leaderboard/alliances?${params}`);
@@ -221,7 +221,7 @@ export default function LeaderboardPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Season Selection */}
-      <SeasonSelector />
+      {/* <SeasonSelector /> */}
       
       {/* Header */}
       <div className="mb-6">
