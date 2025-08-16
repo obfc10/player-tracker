@@ -61,6 +61,10 @@ export default function MeritsPage() {
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('current'); // current, week, month
 
+  useEffect(() => {
+    fetchMeritData();
+  }, [timeframe, selectedSeasonMode, selectedSeasonId]);
+
   // Don't render until season context is loaded
   if (seasonLoading) {
     return (
@@ -71,10 +75,6 @@ export default function MeritsPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    fetchMeritData();
-  }, [timeframe, selectedSeasonMode, selectedSeasonId]);
 
   const fetchMeritData = async () => {
     setLoading(true);

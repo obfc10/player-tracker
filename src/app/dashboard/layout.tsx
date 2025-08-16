@@ -46,7 +46,7 @@ export default function DashboardLayout({
     { name: 'Players', href: '/dashboard/players', icon: Users },
     { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
-    // { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
+    { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
     { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
@@ -78,7 +78,7 @@ export default function DashboardLayout({
   }
 
   return (
-    // <SeasonProvider>
+    <SeasonProvider>
       <div className="flex h-screen bg-gray-900">
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-800 transition-all duration-300 flex-shrink-0`}>
@@ -182,7 +182,7 @@ export default function DashboardLayout({
                 {pathname === '/dashboard/players' && 'Player Database'}
                 {pathname === '/dashboard/progress' && 'Progress Tracking'}
                 {pathname === '/dashboard/leaderboard' && 'Leaderboards'}
-                {/* {pathname === '/dashboard/merits' && 'Merit Analytics'} */}
+                {pathname === '/dashboard/merits' && 'Merit Analytics'}
                 {pathname === '/dashboard/changes' && 'Change Analysis'}
                 {pathname === '/dashboard/alliance-moves' && 'Alliance Moves'}
                 {pathname === '/dashboard/name-changes' && 'Name Changes'}
@@ -209,6 +209,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
-    // </SeasonProvider>
+    </SeasonProvider>
   );
 }
