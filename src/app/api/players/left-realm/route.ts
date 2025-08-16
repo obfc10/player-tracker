@@ -58,7 +58,10 @@ export async function GET(request: NextRequest) {
         hasLeftRealm: player.hasLeftRealm,
         lastSeenAt: player.lastSeenAt,
         leftRealmAt: player.leftRealmAt,
-        daysGone: player.leftRealmAt ? 
+        daysGone: player.lastSeenAt ? 
+          Math.floor((new Date().getTime() - new Date(player.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)) : 
+          null,
+        daysSinceDetected: player.leftRealmAt ? 
           Math.floor((new Date().getTime() - new Date(player.leftRealmAt).getTime()) / (1000 * 60 * 60 * 24)) : 
           null,
         
