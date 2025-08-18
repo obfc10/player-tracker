@@ -1,11 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
 // Force dynamic rendering
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const includeLeftRealm = searchParams.get('includeLeftRealm') === 'true';
   try {
     // Get the latest snapshot to work with current data
     const latestSnapshot = await prisma.snapshot.findFirst({
@@ -13,7 +15,7 @@ export async function GET() {
     });
 
     if (!latestSnapshot) {
-      return NextResponse.json([]);
+      return NextResponse.json({ players: [] });
     }
 
     // Get all player snapshots from the latest snapshot
@@ -29,49 +31,26 @@ export async function GET() {
       }
     });
 
-    // Transform to match frontend PlayerData interface
-    const transformedPlayers = playerSnapshots.map((snapshot: any) => ({
-      lordId: snapshot.playerId,
-      name: snapshot.name,
-      division: snapshot.division,
-      allianceTag: snapshot.allianceTag || '',
-      currentPower: snapshot.currentPower,
-      power: snapshot.power,
-      merits: snapshot.merits,
-      unitsKilled: snapshot.unitsKilled,
-      unitsDead: snapshot.unitsDead,
-      unitsHealed: snapshot.unitsHealed,
-      t1KillCount: snapshot.t1KillCount,
-      t2KillCount: snapshot.t2KillCount,
-      t3KillCount: snapshot.t3KillCount,
-      t4KillCount: snapshot.t4KillCount,
-      t5KillCount: snapshot.t5KillCount,
-      buildingPower: snapshot.buildingPower,
-      heroPower: snapshot.heroPower,
-      legionPower: snapshot.legionPower,
-      techPower: snapshot.techPower,
-      victories: snapshot.victories,
-      defeats: snapshot.defeats,
-      citySieges: snapshot.citySieges,
-      scouted: snapshot.scouted,
-      helpsGiven: snapshot.helpsGiven,
-      gold: snapshot.gold,
-      goldSpent: snapshot.goldSpent,
-      wood: snapshot.wood,
-      woodSpent: snapshot.woodSpent,
-      ore: snapshot.ore,
-      oreSpent: snapshot.oreSpent,
-      mana: snapshot.mana,
-      manaSpent: snapshot.manaSpent,
-      gems: snapshot.gems,
-      gemsSpent: snapshot.gemsSpent,
-      resourcesGiven: snapshot.resourcesGiven,
-      resourcesGivenCount: snapshot.resourcesGivenCount,
-      cityLevel: snapshot.cityLevel,
-      faction: snapshot.faction || ''
-    }));
+    // Transform to match PlayerSelectionGrid interface
+    const transformedPlayers = playerSnapshots
+      .filter((snapshot: any) => {
+        // Filter out left realm players unless explicitly requested
+        if (!includeLeftRealm && snapshot.player.hasLeftRealm) {
+          return false;
+        }
+        return true;
+      })
+      .map((snapshot: any) => ({
+        lordId: snapshot.playerId,
+        currentName: snapshot.name,
+        allianceTag: snapshot.allianceTag || undefined,
+        division: snapshot.division,
+        cityLevel: snapshot.cityLevel,
+        currentPower: parseInt(snapshot.currentPower) || 0,
+        hasLeftRealm: snapshot.player.hasLeftRealm || false
+      }));
 
-    return NextResponse.json(transformedPlayers);
+    return NextResponse.json({ players: transformedPlayers });
   } catch (error) {
     console.error('Error fetching players:', error);
     return NextResponse.json({ error: 'Failed to fetch players' }, { status: 500 });

@@ -15,14 +15,15 @@ import {
   X,
   Clock,
   Edit3,
-  Key
+  Key,
+  Settings
 } from 'lucide-react';
 
 interface User {
   id: string;
   username: string;
   name: string | null;
-  role: 'ADMIN' | 'VIEWER';
+  role: 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER';
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   createdAt: string;
   updatedAt: string;
@@ -33,8 +34,8 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({ username: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' });
-  const [editForm, setEditForm] = useState({ username: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' });
+  const [newUser, setNewUser] = useState({ username: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER' });
+  const [editForm, setEditForm] = useState({ username: '', name: '', role: 'VIEWER' as 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER' });
 
   useEffect(() => {
     fetchUsers();
@@ -240,10 +241,11 @@ export default function UserManagementPage() {
                 </label>
                 <select
                   value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'ADMIN' | 'VIEWER' })}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER' })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
                 >
                   <option value="VIEWER">Viewer</option>
+                  <option value="EVENT_MANAGER">Event Manager</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
@@ -308,10 +310,11 @@ export default function UserManagementPage() {
                 </label>
                 <select
                   value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'ADMIN' | 'VIEWER' })}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value as 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER' })}
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
                 >
                   <option value="VIEWER">Viewer</option>
+                  <option value="EVENT_MANAGER">Event Manager</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
@@ -366,11 +369,15 @@ export default function UserManagementPage() {
                       className={
                         user.role === 'ADMIN' 
                           ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                          : user.role === 'EVENT_MANAGER'
+                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
                           : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
                       }
                     >
                       {user.role === 'ADMIN' ? (
                         <><Shield className="w-3 h-3 mr-1" /> Admin</>
+                      ) : user.role === 'EVENT_MANAGER' ? (
+                        <><Settings className="w-3 h-3 mr-1" /> Event Manager</>
                       ) : (
                         <><Eye className="w-3 h-3 mr-1" /> Viewer</>
                       )}

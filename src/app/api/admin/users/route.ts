@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         username,
         name: name || null,
         password: hashedPassword,
-        role: role as 'ADMIN' | 'VIEWER'
+        role: role as 'ADMIN' | 'VIEWER' | 'EVENT_MANAGER'
       },
       select: {
         id: true,

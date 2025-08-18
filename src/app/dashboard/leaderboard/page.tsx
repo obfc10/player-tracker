@@ -11,6 +11,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AllianceLeaderboard } from '@/components/leaderboard/AllianceLeaderboard';
+import { PlayerEventHistory } from '@/components/row/PlayerEventHistory';
 import { Trophy, Shield, Users, Crown, RefreshCw } from 'lucide-react';
 
 interface Player {
@@ -95,6 +96,7 @@ export default function LeaderboardPage() {
   const [allianceData, setAllianceData] = useState<AllianceLeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('players');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   
   // Player leaderboard state
   const [playerSortBy, setPlayerSortBy] = useState('currentPower');
@@ -190,8 +192,8 @@ export default function LeaderboardPage() {
   };
 
   const handlePlayerClick = (player: Player) => {
-    // Navigate to player profile page
-    router.push(`/dashboard/player/${player.lordId}`);
+    // Open ROW event history modal
+    setSelectedPlayerId(player.lordId);
   };
 
   const handleAllianceClick = (alliance: Alliance) => {
@@ -405,7 +407,7 @@ export default function LeaderboardPage() {
             <div className="p-4 bg-gray-700 rounded-lg">
               <h4 className="text-white font-medium mb-2">Player Rankings</h4>
               <p className="text-gray-400">
-                Sort by power, kills, merits, and other metrics. Click any player to view their progress.
+                Sort by power, kills, merits, and other metrics. Click any player to view their ROW event history.
               </p>
             </div>
             <div className="p-4 bg-gray-700 rounded-lg">
@@ -423,6 +425,14 @@ export default function LeaderboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Player Event History Modal */}
+      {selectedPlayerId && (
+        <PlayerEventHistory
+          playerId={selectedPlayerId}
+          onClose={() => setSelectedPlayerId(null)}
+        />
+      )}
     </div>
   );
 }

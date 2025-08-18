@@ -149,8 +149,12 @@ export function AllianceLeaderboard({ data, loading, onSort, onAllianceClick }: 
                   return (
                     <th
                       key={column.key}
-                      className={`px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${
+                      className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider transition-all duration-200 ${
                         column.sortable ? 'cursor-pointer hover:bg-gray-800' : ''
+                      } ${
+                        data && data.sortBy === column.key
+                          ? 'bg-purple-900/50 text-purple-300 border-b-2 border-purple-500'
+                          : 'text-gray-300'
                       }`}
                       onClick={() => column.sortable && onSort(column.key)}
                     >

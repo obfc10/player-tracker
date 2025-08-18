@@ -170,7 +170,11 @@ export function LeaderboardTable({
           <select
             value={data.alliance}
             onChange={(e) => onAllianceFilter(e.target.value)}
-            className="px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+            className={`px-3 py-2 border rounded text-sm transition-all duration-200 ${
+              data.alliance !== 'all' 
+                ? 'bg-purple-700 border-purple-500 text-white shadow-lg' 
+                : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
+            }`}
           >
             <option value="all">All Alliances</option>
             {data.alliances.map(alliance => (
@@ -178,7 +182,7 @@ export function LeaderboardTable({
             ))}
           </select>
           {data.alliance !== 'all' && (
-            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+            <Badge className="bg-purple-600/30 text-purple-200 border-purple-500/50 shadow-lg">
               {data.alliance}
             </Badge>
           )}
@@ -194,7 +198,11 @@ export function LeaderboardTable({
                 variant={selectedColumns.has(column.key) ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={() => toggleColumn(column.key)}
-                className="text-xs"
+                className={`text-xs transition-all duration-200 ${
+                  selectedColumns.has(column.key) 
+                    ? 'bg-purple-600 border-purple-500 text-white hover:bg-purple-700 shadow-lg' 
+                    : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500'
+                }`}
               >
                 {column.label}
               </Button>
@@ -223,8 +231,12 @@ export function LeaderboardTable({
                     return (
                       <th
                         key={column.key}
-                        className={`px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider ${
+                        className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider transition-all duration-200 ${
                           column.sortable ? 'cursor-pointer hover:bg-gray-800' : ''
+                        } ${
+                          data && data.sortBy === column.key
+                            ? 'bg-purple-900/50 text-purple-300 border-b-2 border-purple-500'
+                            : 'text-gray-300'
                         }`}
                         onClick={() => column.sortable && onSort(column.key)}
                       >
@@ -303,6 +315,7 @@ export function LeaderboardTable({
               size="sm"
               onClick={() => onPageChange(1)}
               disabled={data.currentPage === 1}
+              className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronsLeft className="w-4 h-4" />
             </Button>
@@ -311,10 +324,11 @@ export function LeaderboardTable({
               size="sm"
               onClick={() => onPageChange(data.currentPage - 1)}
               disabled={data.currentPage === 1}
+              className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <span className="px-3 py-1 bg-gray-700 rounded text-sm text-white">
+            <span className="px-3 py-1 bg-purple-600 border border-purple-500 rounded text-sm text-white font-medium shadow-lg">
               {data.currentPage}
             </span>
             <Button
@@ -322,6 +336,7 @@ export function LeaderboardTable({
               size="sm"
               onClick={() => onPageChange(data.currentPage + 1)}
               disabled={data.currentPage === data.totalPages}
+              className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -330,6 +345,7 @@ export function LeaderboardTable({
               size="sm"
               onClick={() => onPageChange(data.totalPages)}
               disabled={data.currentPage === data.totalPages}
+              className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronsRight className="w-4 h-4" />
             </Button>

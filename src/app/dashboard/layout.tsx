@@ -20,7 +20,9 @@ import {
   UserCheck,
   UserX,
   Award,
-  Calendar
+  Calendar,
+  Sword,
+  Shield
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -47,6 +49,8 @@ export default function DashboardLayout({
     { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
     { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
+    { name: 'Roots of War', href: '/dashboard/row', icon: Sword },
+    { name: 'Behemoth', href: '/dashboard/behemoth', icon: Shield },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
     { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
@@ -84,15 +88,23 @@ export default function DashboardLayout({
       <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-800 transition-all duration-300 flex-shrink-0`}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700">
-            <h1 className={`text-xl font-bold text-white transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+          <div className="p-4 border-b border-gray-700">
+            <h1 className={`text-xl font-bold text-white transition-opacity duration-300 mb-3 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
               Player Tracker
             </h1>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-gray-400 hover:text-white transition-colors"
+              className={`
+                flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors w-full
+                text-gray-300 hover:bg-gray-700 hover:text-white
+                ${!sidebarOpen ? 'justify-center' : ''}
+              `}
+              title={!sidebarOpen ? (sidebarOpen ? 'Collapse Menu' : 'Expand Menu') : undefined}
             >
-              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {sidebarOpen ? <X className="w-5 h-5 flex-shrink-0" /> : <Menu className="w-5 h-5 flex-shrink-0" />}
+              <span className={`ml-3 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                {sidebarOpen ? 'Collapse Menu' : 'Expand Menu'}
+              </span>
             </button>
           </div>
 
@@ -109,6 +121,7 @@ export default function DashboardLayout({
                     ${isActive 
                       ? 'bg-gray-900 text-white' 
                       : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                    ${!sidebarOpen ? 'justify-center' : ''}
                   `}
                   title={!sidebarOpen ? item.name : undefined}
                 >
@@ -138,6 +151,7 @@ export default function DashboardLayout({
                         ${isActive 
                           ? 'bg-gray-900 text-white' 
                           : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                        ${!sidebarOpen ? 'justify-center' : ''}
                       `}
                       title={!sidebarOpen ? item.name : undefined}
                     >
@@ -154,19 +168,24 @@ export default function DashboardLayout({
 
           {/* User Section */}
           <div className="p-4 border-t border-gray-700">
-            <div className="flex items-center">
-              <div className={`flex-1 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
-                <p className="text-sm text-white truncate">{session?.user?.name || 'User'}</p>
-                <p className="text-xs text-gray-400 capitalize">{session?.user?.role?.toLowerCase() || 'viewer'}</p>
-              </div>
-              <button 
-                onClick={handleSignOut}
-                className="text-gray-400 hover:text-white transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+            <div className={`transition-opacity duration-300 mb-3 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+              <p className="text-sm text-white truncate">{session?.user?.name || 'User'}</p>
+              <p className="text-xs text-gray-400 capitalize">{session?.user?.role?.toLowerCase() || 'viewer'}</p>
             </div>
+            <button 
+              onClick={handleSignOut}
+              className={`
+                flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors w-full
+                text-gray-300 hover:bg-gray-700 hover:text-white
+                ${!sidebarOpen ? 'justify-center' : ''}
+              `}
+              title={!sidebarOpen ? 'Sign Out' : undefined}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span className={`ml-3 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                Sign Out
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -184,6 +203,8 @@ export default function DashboardLayout({
                   if (pathname === '/dashboard/progress') return 'Progress Tracking';
                   if (pathname === '/dashboard/leaderboard') return 'Leaderboards';
                   if (pathname === '/dashboard/merits') return 'Merit Analytics';
+                  if (pathname === '/dashboard/row') return 'Roots of War Management';
+                  if (pathname === '/dashboard/behemoth') return 'Behemoth Tracking';
                   if (pathname === '/dashboard/changes') return 'Change Analysis';
                   if (pathname === '/dashboard/alliance-moves') return 'Alliance Moves';
                   if (pathname === '/dashboard/name-changes') return 'Name Changes';

@@ -9,19 +9,25 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(cuid())
-  username  String      @unique
-  password  String
-  name      String?
-  role      Role        @default(VIEWER)
-  status    UserStatus  @default(PENDING)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  uploads   Upload[]
+  id                        String                @id @default(cuid())
+  username                  String                @unique
+  password                  String
+  name                      String?
+  role                      Role                  @default(VIEWER)
+  status                    UserStatus            @default(PENDING)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  uploads                   Upload[]
+  eventsCreated             Event[]               @relation("EventCreatedBy")
+  eventParticipationsAdded  EventParticipation[]  @relation("EventParticipationAddedBy")
+  
+  // New ROW relations
+  gameEventsCreated         GameEvent[]           @relation("GameEventCreatedBy")
 }
 
 enum Role {
   ADMIN
+  EVENT_MANAGER
   VIEWER
 }
 
@@ -47,18 +53,24 @@ model Season {
 }
 
 model Player {
-  lordId           String            @id
-  currentName      String
-  nameHistory      NameChange[]
-  allianceHistory  AllianceChange[]
-  snapshots        PlayerSnapshot[]
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  lordId              String                @id
+  currentName         String
+  nameHistory         NameChange[]
+  allianceHistory     AllianceChange[]
+  snapshots           PlayerSnapshot[]
+  eventParticipations EventParticipation[]
+  
+  // New ROW relations
+  teamRoster          TeamRoster[]
+  playerEventRoles    PlayerEventRole[]
+  
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   
   // Realm status tracking
-  hasLeftRealm     Boolean           @default(false)
-  lastSeenAt       DateTime?
-  leftRealmAt      DateTime?
+  hasLeftRealm        Boolean               @default(false)
+  lastSeenAt          DateTime?
+  leftRealmAt         DateTime?
   
   @@index([currentName])
   @@index([hasLeftRealm])
@@ -192,3 +204,178 @@ enum UploadStatus {
   COMPLETED
   FAILED
 }
+
+model Event {
+  id                    String                @id @default(cuid())
+  name                  String
+  startDate             DateTime
+  endDate               DateTime?
+  description           String?
+  isActive              Boolean               @default(true)
+  createdBy             User                  @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdById           String
+  teams                 EventTeam[]
+  participations        EventParticipation[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  @@index([startDate])
+  @@index([isActive])
+  @@index([createdById])
+}
+
+model EventTeam {
+  id                    String                @id @default(cuid())
+  event                 Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId               String
+  name                  String
+  color                 String?               // Hex color for UI display
+  description           String?
+  participations        EventParticipation[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  
+  @@unique([eventId, name])
+  @@index([eventId])
+}
+
+model EventParticipation {
+  id          String     @id @default(cuid())
+  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  team        EventTeam? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  teamId      String?
+  player      Player     @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  playerId    String
+  joinedAt    DateTime   @default(now())
+  leftAt      DateTime?
+  notes       String?
+  addedBy     User       @relation("EventParticipationAddedBy", fields: [addedById], references: [id])
+  addedById   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@unique([eventId, playerId])
+  @@index([eventId])
+  @@index([teamId])
+  @@index([playerId])
+  @@index([addedById])
+}
+
+// ROW-specific models for enhanced event management
+
+enum EventStatus {
+  DRAFT       // Teams assigned, not started
+  ACTIVE      // Event in progress
+  SCORING     // Results being entered
+  FINALIZED   // Locked, affects rankings
+}
+
+enum RosterPosition {
+  STARTER
+  SUBSTITUTE
+}
+
+model EventRole {
+  id              String              @id @default(cuid())
+  name            String              @unique
+  description     String?
+  isActive        Boolean             @default(true)
+  sortOrder       Int                 @default(0)
+  color           String?             // Hex color for UI display
+  playerRoles     PlayerEventRole[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model PersistentTeam {
+  id              String              @id @default(cuid())
+  name            String              @unique
+  description     String?
+  color           String?             // Team color for UI
+  isActive        Boolean             @default(true)
+  roster          TeamRoster[]
+  gameEvents      GameEvent[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([isActive])
+  @@index([name])
+}
+
+model TeamRoster {
+  id              String              @id @default(cuid())
+  team            PersistentTeam      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId          String
+  player          Player              @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  playerId        String
+  position        RosterPosition      @default(STARTER)
+  dateJoined      DateTime            @default(now())
+  dateLeft        DateTime?
+  isActive        Boolean             @default(true)
+  notes           String?
+  
+  @@unique([teamId, playerId])
+  @@index([teamId])
+  @@index([playerId])
+  @@index([isActive])
+  @@index([position])
+}
+
+model GameEvent {
+  id              String              @id @default(cuid())
+  name            String
+  description     String?
+  eventDate       DateTime
+  status          EventStatus         @default(DRAFT)
+  eventType       String              @default("ROW") // ROW, Behemoth, etc.
+  maxTeams        Int                 @default(3)
+  outcome         String?             // Winner team name or "Draw"
+  notes           String?
+  teams           PersistentTeam[]
+  playerRoles     PlayerEventRole[]
+  createdBy       User                @relation("GameEventCreatedBy", fields: [createdById], references: [id])
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@index([eventDate])
+  @@index([status])
+  @@index([eventType])
+  @@index([createdById])
+}
+
+model PlayerEventRole {
+  id              String              @id @default(cuid())
+  gameEvent       GameEvent           @relation(fields: [gameEventId], references: [id], onDelete: Cascade)
+  gameEventId     String
+  player          Player              @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  playerId        String
+  role            EventRole           @relation(fields: [roleId], references: [id])
+  roleId          String
+  
+  // Performance scores
+  garrisonPoints  Int                 @default(0)
+  seedPoints      Int                 @default(0)
+  killPoints      Int                 @default(0)
+  totalPoints     Int                 @default(0) // Calculated field
+  
+  // Additional tracking
+  performanceRating String?           // S, A, B, C rating
+  mvpVotes        Int                 @default(0)
+  notes           String?
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  @@unique([gameEventId, playerId, roleId])
+  @@index([gameEventId])
+  @@index([playerId])
+  @@index([roleId])
+  @@index([totalPoints])
+  @@index([killPoints]) // Most important metric
+}
+

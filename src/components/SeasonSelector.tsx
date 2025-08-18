@@ -119,24 +119,24 @@ export function SeasonSelector({ compact = false, className = '' }: SeasonSelect
               )}
 
               {/* Individual Seasons */}
-              {seasons.map(season => (
+              {seasons && seasons.length > 0 && seasons.map(season => (
                 <button
-                  key={season.id}
-                  onClick={() => handleModeSelect('specific', season.id)}
+                  key={String(season.id)}
+                  onClick={() => handleModeSelect('specific', String(season.id))}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
-                    selectedSeasonMode === 'specific' && selectedSeasonId === season.id
+                    selectedSeasonMode === 'specific' && selectedSeasonId === String(season.id)
                       ? 'bg-blue-600/20 text-blue-300' 
                       : 'text-gray-300 hover:bg-gray-700'
                   }`}
                 >
                   <Calendar className="w-4 h-4" />
-                  {season.name}
+                  {String(season.name)}
                   {season.isActive && (
                     <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs">
                       Active
                     </Badge>
                   )}
-                  {selectedSeasonMode === 'specific' && selectedSeasonId === season.id && (
+                  {selectedSeasonMode === 'specific' && selectedSeasonId === String(season.id) && (
                     <Check className="w-4 h-4 ml-auto" />
                   )}
                 </button>
@@ -186,16 +186,16 @@ export function SeasonSelector({ compact = false, className = '' }: SeasonSelect
               <div className="text-xs text-gray-400 uppercase tracking-wider px-2 py-1">
                 Specific Seasons
               </div>
-              {seasons.slice(0, 5).map(season => (
+              {seasons && seasons.length > 0 && seasons.slice(0, 5).map(season => (
                 <Button
-                  key={season.id}
-                  variant={selectedSeasonMode === 'specific' && selectedSeasonId === season.id ? 'secondary' : 'outline'}
+                  key={String(season.id)}
+                  variant={selectedSeasonMode === 'specific' && selectedSeasonId === String(season.id) ? 'secondary' : 'outline'}
                   size="sm"
-                  onClick={() => handleModeSelect('specific', season.id)}
+                  onClick={() => handleModeSelect('specific', String(season.id))}
                   className="w-full justify-start text-xs"
                 >
                   <Calendar className="w-3 h-3 mr-2" />
-                  {season.name}
+                  {String(season.name)}
                   {season.isActive && (
                     <Badge className="bg-green-500/20 text-green-300 border-green-500/30 text-xs ml-auto">
                       Active
