@@ -200,8 +200,8 @@ export async function DELETE(
       });
 
       // Also soft delete all roster entries
-      await prisma.persistentTeamRoster.updateMany({
-        where: { persistentTeamId: params.teamId },
+      await prisma.teamRoster.updateMany({
+        where: { teamId: params.teamId },
         data: {
           isActive: false,
           updatedAt: new Date()
@@ -209,8 +209,8 @@ export async function DELETE(
       });
     } else {
       // Hard delete if no events are associated
-      await prisma.persistentTeamRoster.deleteMany({
-        where: { persistentTeamId: params.teamId }
+      await prisma.teamRoster.deleteMany({
+        where: { teamId: params.teamId }
       });
 
       await prisma.persistentTeam.delete({
