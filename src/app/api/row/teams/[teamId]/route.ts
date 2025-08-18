@@ -114,8 +114,7 @@ export async function PUT(
       data: {
         name: name.trim(),
         description: description?.trim() || null,
-        color: color || null,
-        updatedAt: new Date()
+        color: color || null
       },
       include: {
         roster: {
@@ -194,8 +193,7 @@ export async function DELETE(
       await prisma.persistentTeam.update({
         where: { id: params.teamId },
         data: {
-          isActive: false,
-          updatedAt: new Date()
+          isActive: false
         }
       });
 
@@ -203,8 +201,7 @@ export async function DELETE(
       await prisma.teamRoster.updateMany({
         where: { teamId: params.teamId },
         data: {
-          isActive: false,
-          updatedAt: new Date()
+          isActive: false
         }
       });
     } else {
