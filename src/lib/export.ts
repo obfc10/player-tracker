@@ -238,7 +238,7 @@ export const ExportConfigs = {
       { key: 'merits', header: 'Total Merits', type: 'number' as const, width: 15 },
       { key: 'power', header: 'Power', type: 'number' as const, width: 15 },
       { key: 'meritPowerRatio', header: 'Merit/Power Ratio (%)', type: 'number' as const, width: 18 },
-      { key: 'meritKillRatio', header: 'Merit/Kill Ratio', type: 'number' as const, width: 15 },
+      { key: 'battleEfficiency', header: 'Battle Efficiency', type: 'number' as const, width: 15 },
       { key: 'cityLevel', header: 'City Level', type: 'number' as const, width: 12 },
       { key: 'division', header: 'Division', type: 'number' as const, width: 10 }
     ] as ExportColumn[]

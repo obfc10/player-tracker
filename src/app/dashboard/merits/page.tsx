@@ -319,7 +319,7 @@ export default function MeritsPage() {
                   merits: player.merits || '0',
                   power: player.currentPower || '0',
                   meritPowerRatio: player.meritPowerRatio || 0,
-                  meritKillRatio: player.meritKillRatio || 0,
+                  battleEfficiency: player.battleEfficiency || 0,
                   cityLevel: player.cityLevel || 0,
                   division: player.division || 0,
                   percentile: player.meritPercentile || 0,
