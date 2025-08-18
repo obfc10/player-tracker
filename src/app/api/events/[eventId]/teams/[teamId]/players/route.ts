@@ -73,7 +73,8 @@ export async function POST(
         eventId,
         teamId,
         playerId,
-        joinedAt: new Date()
+        joinedAt: new Date(),
+        addedById: session.user.id
       }))
     });
 
