@@ -230,7 +230,7 @@ export function GlobalSearch() {
                 <div className="max-h-80 overflow-y-auto">
                   <div className="p-2">
                     <p className="text-xs text-gray-400 mb-2 px-2">
-                      Found {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+                      Found {results.length} result{results.length !== 1 ? 's' : ''} for &quot;{query}&quot;
                     </p>
                     {results.map((result, index) => (
                       <button
@@ -256,7 +256,7 @@ export function GlobalSearch() {
               ) : query.length >= 2 ? (
                 <div className="p-4 text-center">
                   <Search className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400">No results found for "{query}"</p>
+                  <p className="text-sm text-gray-400">No results found for &quot;{query}&quot;</p>
                   <p className="text-xs text-gray-500 mt-1">Try searching by player name, alliance tag, or player ID</p>
                 </div>
               ) : null}

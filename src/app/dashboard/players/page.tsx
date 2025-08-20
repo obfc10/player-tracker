@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 
 interface PlayerData {
   lordId: string;
@@ -111,9 +112,10 @@ export default function PlayersPage() {
     try {
       const response = await fetch('/api/players');
       const data = await response.json();
-      setPlayers(data);
+      setPlayers(data.players || []);
     } catch (error) {
       console.error('Error fetching players:', error);
+      setPlayers([]);
     } finally {
       setLoading(false);
     }
@@ -233,15 +235,23 @@ export default function PlayersPage() {
             onChange={(e) => setSelectedAlliance(e.target.value)}
             className="px-4 py-2 bg-gray-800 text-white rounded-lg"
           >
-            <option value="all">All Alliances</option>
-            {Array.from(new Set(players.map(p => p.allianceTag).filter(Boolean))).map(alliance => (
-              <option key={alliance} value={alliance}>{alliance}</option>
+            {ALLIANCE_FILTER_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
+            <optgroup label="All Available Alliances">
+              {players && players.length > 0 && sortAlliancesByPriority(Array.from(new Set(players.map(p => p.allianceTag).filter(Boolean)))).map(alliance => (
+                <option key={`all-${alliance}`} value={alliance}>
+                  {alliance} {isManagedAlliance(alliance) ? '★' : ''}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </div>
         
         <p className="text-gray-400">
-          Showing {filteredPlayers.length} of {players.length} players
+          Showing {filteredPlayers.length} of {players?.length || 0} players
         </p>
       </div>
 
@@ -274,14 +284,31 @@ export default function PlayersPage() {
                 <tr
                   key={player.lordId}
                   onClick={() => openPlayerCard(player.lordId)}
-                  className="hover:bg-gray-700 cursor-pointer transition-colors"
+                  className={`cursor-pointer transition-colors hover:bg-gray-700 ${
+                    player.allianceTag && isManagedAlliance(player.allianceTag) 
+                      ? 'ring-1 ring-yellow-400/30 bg-gray-800/50' 
+                      : ''
+                  }`}
                 >
                   {columns.map(column => (
                     <td
                       key={column.key}
                       className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap"
                     >
-                      {column.type === 'bigNumber' 
+                      {column.key === 'allianceTag' ? (
+                        player.allianceTag ? (
+                          <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            isManagedAlliance(player.allianceTag) 
+                              ? getManagedAllianceColor(player.allianceTag)
+                              : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                          }`}>
+                            {player.allianceTag}
+                            {isManagedAlliance(player.allianceTag) && (
+                              <span className="ml-1">★</span>
+                            )}
+                          </span>
+                        ) : '-'
+                      ) : column.type === 'bigNumber' 
                         ? formatNumber(player[column.key as keyof PlayerData])
                         : player[column.key as keyof PlayerData] || '-'}
                     </td>

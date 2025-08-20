@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/row/teams/[teamId] - Get a specific persistent team
 export async function GET(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,9 +17,10 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    const { teamId } = await params;
     const team = await prisma.persistentTeam.findUnique({
       where: { 
-        id: params.teamId,
+        id: teamId,
         isActive: true 
       },
       include: {
@@ -73,7 +74,7 @@ export async function GET(
 // PUT /api/row/teams/[teamId] - Update a persistent team
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -81,6 +82,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
+    const { teamId } = await params;
     const { name, description, color } = await request.json();
 
     if (!name || name.trim().length === 0) {
@@ -89,7 +91,7 @@ export async function PUT(
 
     // Check if team exists
     const existingTeam = await prisma.persistentTeam.findUnique({
-      where: { id: params.teamId }
+      where: { id: teamId }
     });
 
     if (!existingTeam) {
@@ -100,7 +102,7 @@ export async function PUT(
     const duplicateTeam = await prisma.persistentTeam.findFirst({
       where: { 
         name: name.trim(),
-        id: { not: params.teamId },
+        id: { not: teamId },
         isActive: true
       }
     });
@@ -110,7 +112,7 @@ export async function PUT(
     }
 
     const updatedTeam = await prisma.persistentTeam.update({
-      where: { id: params.teamId },
+      where: { id: teamId },
       data: {
         name: name.trim(),
         description: description?.trim() || null,
@@ -163,7 +165,7 @@ export async function PUT(
 // DELETE /api/row/teams/[teamId] - Delete (soft delete) a persistent team
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -171,9 +173,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
+    const { teamId } = await params;
     // Check if team exists
     const existingTeam = await prisma.persistentTeam.findUnique({
-      where: { id: params.teamId },
+      where: { id: teamId },
       include: {
         _count: {
           select: {
@@ -191,7 +194,7 @@ export async function DELETE(
     if (existingTeam._count.gameEvents > 0) {
       // Soft delete - mark as inactive instead of hard delete to preserve event history
       await prisma.persistentTeam.update({
-        where: { id: params.teamId },
+        where: { id: teamId },
         data: {
           isActive: false
         }
@@ -199,7 +202,7 @@ export async function DELETE(
 
       // Also soft delete all roster entries
       await prisma.teamRoster.updateMany({
-        where: { teamId: params.teamId },
+        where: { teamId },
         data: {
           isActive: false
         }
@@ -207,11 +210,11 @@ export async function DELETE(
     } else {
       // Hard delete if no events are associated
       await prisma.teamRoster.deleteMany({
-        where: { teamId: params.teamId }
+        where: { teamId }
       });
 
       await prisma.persistentTeam.delete({
-        where: { id: params.teamId }
+        where: { id: teamId }
       });
     }
 

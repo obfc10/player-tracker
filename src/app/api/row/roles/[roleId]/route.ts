@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // PUT /api/row/roles/[roleId] - Update an event role
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { roleId: string } }
+  { params }: { params: Promise<{ roleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { roleId } = params;
+    const { roleId } = await params;
     const { name, description, color, sortOrder, isActive } = await request.json();
 
     if (!name || name.trim().length === 0) {
@@ -65,7 +65,7 @@ export async function PUT(
 // DELETE /api/row/roles/[roleId] - Deactivate an event role
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { roleId: string } }
+  { params }: { params: Promise<{ roleId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -73,7 +73,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { roleId } = params;
+    const { roleId } = await params;
 
     // Check if role exists
     const existingRole = await prisma.eventRole.findUnique({

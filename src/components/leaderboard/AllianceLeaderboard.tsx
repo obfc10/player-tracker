@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getManagedAllianceColor, isManagedAlliance } from '@/lib/alliance-config';
 import { 
   Shield,
   Users,
@@ -176,7 +177,11 @@ export function AllianceLeaderboard({ data, loading, onSort, onAllianceClick }: 
                 <tr
                   key={alliance.tag}
                   onClick={() => onAllianceClick(alliance)}
-                  className="hover:bg-gray-700 cursor-pointer transition-colors"
+                  className={`cursor-pointer transition-colors hover:bg-gray-700 ${
+                    isManagedAlliance(alliance.tag) 
+                      ? 'ring-1 ring-yellow-400/30 bg-gray-800/50' 
+                      : ''
+                  }`}
                 >
                   <td className="px-4 py-3 text-sm">
                     <Badge className={getRankBadgeColor(alliance.rank)}>
@@ -185,8 +190,11 @@ export function AllianceLeaderboard({ data, loading, onSort, onAllianceClick }: 
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-blue-400" />
+                      <Shield className={`w-4 h-4 ${isManagedAlliance(alliance.tag) ? 'text-yellow-400' : 'text-blue-400'}`} />
                       <span className="text-white font-medium">{alliance.tag}</span>
+                      {isManagedAlliance(alliance.tag) && (
+                        <span className="text-yellow-400 text-sm">★</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm">

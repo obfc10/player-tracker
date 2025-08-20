@@ -12,6 +12,7 @@ import { ExportConfigs } from '@/lib/export';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AllianceLeaderboard } from '@/components/leaderboard/AllianceLeaderboard';
 import { PlayerEventHistory } from '@/components/row/PlayerEventHistory';
+import { ALLIANCE_FILTER_OPTIONS, sortAlliancesByPriority } from '@/lib/alliance-config';
 import { Trophy, Shield, Users, Crown, RefreshCw } from 'lucide-react';
 
 interface Player {

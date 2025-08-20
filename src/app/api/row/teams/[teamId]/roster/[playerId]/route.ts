@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // DELETE /api/row/teams/[teamId]/roster/[playerId] - Remove player from roster
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { teamId: string; playerId: string } }
+  { params }: { params: Promise<{ teamId: string; playerId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { teamId, playerId } = params;
+    const { teamId, playerId } = await params;
 
     // Find the active roster entry
     const rosterEntry = await prisma.teamRoster.findFirst({
@@ -72,7 +72,7 @@ export async function DELETE(
 // PUT /api/row/teams/[teamId]/roster/[playerId] - Update player position
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { teamId: string; playerId: string } }
+  { params }: { params: Promise<{ teamId: string; playerId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -80,7 +80,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { teamId, playerId } = params;
+    const { teamId, playerId } = await params;
     const { position, notes } = await request.json();
 
     if (!position || !['STARTER', 'SUBSTITUTE'].includes(position)) {

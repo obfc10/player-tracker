@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,32 +8,18 @@ datasource db {
 }
 
 model User {
-  id                        String                @id @default(cuid())
-  username                  String                @unique
-  password                  String
-  name                      String?
-  role                      Role                  @default(VIEWER)
-  status                    UserStatus            @default(PENDING)
-  createdAt                 DateTime              @default(now())
-  updatedAt                 DateTime              @updatedAt
-  uploads                   Upload[]
-  eventsCreated             Event[]               @relation("EventCreatedBy")
-  eventParticipationsAdded  EventParticipation[]  @relation("EventParticipationAddedBy")
-  
-  // New ROW relations
-  gameEventsCreated         GameEvent[]           @relation("GameEventCreatedBy")
-}
-
-enum Role {
-  ADMIN
-  EVENT_MANAGER
-  VIEWER
-}
-
-enum UserStatus {
-  PENDING
-  APPROVED
-  REJECTED
+  id                       String               @id @default(cuid())
+  username                 String               @unique
+  password                 String
+  name                     String?
+  role                     Role                 @default(VIEWER)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  status                   UserStatus           @default(PENDING)
+  eventsCreated            Event[]              @relation("EventCreatedBy")
+  eventParticipationsAdded EventParticipation[] @relation("EventParticipationAddedBy")
+  gameEventsCreated        GameEvent[]          @relation("GameEventCreatedBy")
+  uploads                  Upload[]
 }
 
 model Season {
@@ -44,34 +29,29 @@ model Season {
   endDate     DateTime?
   isActive    Boolean    @default(false)
   description String?
-  snapshots   Snapshot[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  
+  snapshots   Snapshot[]
+
   @@index([isActive])
   @@index([startDate])
 }
 
 model Player {
-  lordId              String                @id
+  lordId              String               @id
   currentName         String
-  nameHistory         NameChange[]
-  allianceHistory     AllianceChange[]
-  snapshots           PlayerSnapshot[]
-  eventParticipations EventParticipation[]
-  
-  // New ROW relations
-  teamRoster          TeamRoster[]
-  playerEventRoles    PlayerEventRole[]
-  
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  
-  // Realm status tracking
-  hasLeftRealm        Boolean               @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  hasLeftRealm        Boolean              @default(false)
   lastSeenAt          DateTime?
   leftRealmAt         DateTime?
-  
+  allianceHistory     AllianceChange[]
+  eventParticipations EventParticipation[]
+  nameHistory         NameChange[]
+  playerEventRoles    PlayerEventRole[]
+  snapshots           PlayerSnapshot[]
+  teamRoster          TeamRoster[]
+
   @@index([currentName])
   @@index([hasLeftRealm])
   @@index([lastSeenAt])
@@ -79,182 +59,162 @@ model Player {
 
 model NameChange {
   id         String   @id @default(cuid())
-  player     Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
   playerId   String
   oldName    String
   newName    String
   detectedAt DateTime
-  
+  player     Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+
   @@index([playerId])
   @@index([detectedAt])
 }
 
 model AllianceChange {
   id            String   @id @default(cuid())
-  player        Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
   playerId      String
   oldAlliance   String?
   oldAllianceId String?
   newAlliance   String?
   newAllianceId String?
   detectedAt    DateTime
-  
+  player        Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+
   @@index([playerId])
   @@index([detectedAt])
 }
 
 model PlayerSnapshot {
-  id                    String   @id @default(cuid())
-  player                Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  playerId              String
-  snapshot              Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  snapshotId            String
-  
-  // Player identification (Columns 1-5)
-  name                  String   // Column 2
-  division              Int      // Column 3
-  allianceId            String?  // Column 4
-  allianceTag           String?  // Column 5
-  
-  // Power metrics (Columns 6-7, 17-20)
-  currentPower          String   // Column 6 - Stored as string to handle large numbers
-  power                 String   // Column 7
-  buildingPower         String   // Column 17
-  heroPower             String   // Column 18
-  legionPower           String   // Column 19
-  techPower             String   // Column 20
-  
-  // Combat statistics (Columns 8-16)
-  merits                String   // Column 8
-  unitsKilled           String   // Column 9
-  unitsDead             String   // Column 10
-  unitsHealed           String   // Column 11
-  t1KillCount           String   // Column 12
-  t2KillCount           String   // Column 13
-  t3KillCount           String   // Column 14
-  t4KillCount           String   // Column 15
-  t5KillCount           String   // Column 16
-  
-  // Battle statistics (Columns 21-24)
-  victories             Int      // Column 21
-  defeats               Int      // Column 22
-  citySieges            Int      // Column 23
-  scouted               Int      // Column 24
-  
-  // Alliance activity (Column 25, 36-37)
-  helpsGiven            Int      // Column 25
-  resourcesGiven        String   // Column 36
-  resourcesGivenCount   Int      // Column 37
-  
-  // Resources (Columns 26-35)
-  gold                  String   // Column 26
-  goldSpent             String   // Column 27
-  wood                  String   // Column 28
-  woodSpent             String   // Column 29
-  ore                   String   // Column 30
-  oreSpent              String   // Column 31
-  mana                  String   // Column 32
-  manaSpent             String   // Column 33
-  gems                  String   // Column 34
-  gemsSpent             String   // Column 35
-  
-  // Player info (Columns 38-39)
-  cityLevel             Int      // Column 38
-  faction               String?  // Column 39
-  
+  id                  String   @id @default(cuid())
+  playerId            String
+  snapshotId          String
+  name                String
+  division            Int
+  allianceId          String?
+  allianceTag         String?
+  currentPower        String
+  power               String
+  buildingPower       String
+  heroPower           String
+  legionPower         String
+  techPower           String
+  merits              String
+  unitsKilled         String
+  unitsDead           String
+  unitsHealed         String
+  t1KillCount         String
+  t2KillCount         String
+  t3KillCount         String
+  t4KillCount         String
+  t5KillCount         String
+  victories           Int
+  defeats             Int
+  citySieges          Int
+  scouted             Int
+  helpsGiven          Int
+  resourcesGiven      String
+  resourcesGivenCount Int
+  gold                String
+  goldSpent           String
+  wood                String
+  woodSpent           String
+  ore                 String
+  oreSpent            String
+  mana                String
+  manaSpent           String
+  gems                String
+  gemsSpent           String
+  cityLevel           Int
+  faction             String?
+  player              Player   @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  snapshot            Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
   @@unique([playerId, snapshotId])
   @@index([snapshotId])
   @@index([playerId])
 }
 
 model Snapshot {
-  id          String           @id @default(cuid())
-  timestamp   DateTime
-  filename    String
-  kingdom     String
-  upload      Upload           @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-  uploadId    String
-  season      Season?          @relation(fields: [seasonId], references: [id])
-  seasonId    String?
-  players     PlayerSnapshot[]
-  createdAt   DateTime         @default(now())
-  
+  id        String           @id @default(cuid())
+  timestamp DateTime
+  filename  String
+  kingdom   String
+  uploadId  String
+  createdAt DateTime         @default(now())
+  seasonId  String?
+  players   PlayerSnapshot[]
+  season    Season?          @relation(fields: [seasonId], references: [id])
+  upload    Upload           @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
   @@index([timestamp])
   @@index([kingdom])
   @@index([seasonId])
 }
 
 model Upload {
-  id         String       @id @default(cuid())
-  filename   String
-  uploadedBy User         @relation(fields: [userId], references: [id])
-  userId     String
-  snapshots  Snapshot[]
-  status     UploadStatus @default(PROCESSING)
-  error      String?
-  rowsProcessed Int       @default(0)
-  createdAt  DateTime     @default(now())
-  
+  id            String       @id @default(cuid())
+  filename      String
+  userId        String
+  status        UploadStatus @default(PROCESSING)
+  error         String?
+  rowsProcessed Int          @default(0)
+  createdAt     DateTime     @default(now())
+  snapshots     Snapshot[]
+  uploadedBy    User         @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([status])
 }
 
-enum UploadStatus {
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
 model Event {
-  id                    String                @id @default(cuid())
-  name                  String
-  startDate             DateTime
-  endDate               DateTime?
-  description           String?
-  isActive              Boolean               @default(true)
-  createdBy             User                  @relation("EventCreatedBy", fields: [createdById], references: [id])
-  createdById           String
-  teams                 EventTeam[]
-  participations        EventParticipation[]
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  id             String               @id @default(cuid())
+  name           String
+  startDate      DateTime
+  endDate        DateTime?
+  description    String?
+  isActive       Boolean              @default(true)
+  createdById    String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  createdBy      User                 @relation("EventCreatedBy", fields: [createdById], references: [id])
+  participations EventParticipation[]
+  teams          EventTeam[]
+
   @@index([startDate])
   @@index([isActive])
   @@index([createdById])
 }
 
 model EventTeam {
-  id                    String                @id @default(cuid())
-  event                 Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId               String
-  name                  String
-  color                 String?               // Hex color for UI display
-  description           String?
-  participations        EventParticipation[]
-  createdAt             DateTime              @default(now())
-  updatedAt             DateTime              @updatedAt
-  
+  id             String               @id @default(cuid())
+  eventId        String
+  name           String
+  color          String?
+  description    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  participations EventParticipation[]
+  event          Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
   @@unique([eventId, name])
   @@index([eventId])
 }
 
 model EventParticipation {
-  id          String     @id @default(cuid())
-  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  eventId     String
-  team        EventTeam? @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  teamId      String?
-  player      Player     @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  playerId    String
-  joinedAt    DateTime   @default(now())
-  leftAt      DateTime?
-  notes       String?
-  addedBy     User       @relation("EventParticipationAddedBy", fields: [addedById], references: [id])
-  addedById   String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
+  id        String     @id @default(cuid())
+  eventId   String
+  playerId  String
+  joinedAt  DateTime   @default(now())
+  leftAt    DateTime?
+  notes     String?
+  addedById String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  teamId    String?
+  addedBy   User       @relation("EventParticipationAddedBy", fields: [addedById], references: [id])
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  player    Player     @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  team      EventTeam? @relation(fields: [teamId], references: [id])
+
   @@unique([eventId, playerId])
   @@index([eventId])
   @@index([teamId])
@@ -262,62 +222,48 @@ model EventParticipation {
   @@index([addedById])
 }
 
-// ROW-specific models for enhanced event management
-
-enum EventStatus {
-  DRAFT       // Teams assigned, not started
-  ACTIVE      // Event in progress
-  SCORING     // Results being entered
-  FINALIZED   // Locked, affects rankings
-}
-
-enum RosterPosition {
-  STARTER
-  SUBSTITUTE
-}
-
 model EventRole {
-  id              String              @id @default(cuid())
-  name            String              @unique
-  description     String?
-  isActive        Boolean             @default(true)
-  sortOrder       Int                 @default(0)
-  color           String?             // Hex color for UI display
-  playerRoles     PlayerEventRole[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String?
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0)
+  color       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  playerRoles PlayerEventRole[]
+
   @@index([isActive])
   @@index([sortOrder])
 }
 
 model PersistentTeam {
-  id              String              @id @default(cuid())
-  name            String              @unique
-  description     String?
-  color           String?             // Team color for UI
-  isActive        Boolean             @default(true)
-  roster          TeamRoster[]
-  gameEvents      GameEvent[]
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  color       String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  roster      TeamRoster[]
+  gameEvents  GameEvent[]  @relation("GameEventToPersistentTeam")
+
   @@index([isActive])
   @@index([name])
 }
 
 model TeamRoster {
-  id              String              @id @default(cuid())
-  team            PersistentTeam      @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  teamId          String
-  player          Player              @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  playerId        String
-  position        RosterPosition      @default(STARTER)
-  dateJoined      DateTime            @default(now())
-  dateLeft        DateTime?
-  isActive        Boolean             @default(true)
-  notes           String?
-  
+  id         String         @id @default(cuid())
+  teamId     String
+  playerId   String
+  position   RosterPosition @default(STARTER)
+  dateJoined DateTime       @default(now())
+  dateLeft   DateTime?
+  isActive   Boolean        @default(true)
+  notes      String?
+  player     Player         @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  team       PersistentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
   @@unique([teamId, playerId])
   @@index([teamId])
   @@index([playerId])
@@ -326,22 +272,22 @@ model TeamRoster {
 }
 
 model GameEvent {
-  id              String              @id @default(cuid())
-  name            String
-  description     String?
-  eventDate       DateTime
-  status          EventStatus         @default(DRAFT)
-  eventType       String              @default("ROW") // ROW, Behemoth, etc.
-  maxTeams        Int                 @default(3)
-  outcome         String?             // Winner team name or "Draw"
-  notes           String?
-  teams           PersistentTeam[]
-  playerRoles     PlayerEventRole[]
-  createdBy       User                @relation("GameEventCreatedBy", fields: [createdById], references: [id])
-  createdById     String
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  eventDate   DateTime
+  status      EventStatus       @default(DRAFT)
+  eventType   String            @default("ROW")
+  maxTeams    Int               @default(3)
+  outcome     String?
+  notes       String?
+  createdById String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdBy   User              @relation("GameEventCreatedBy", fields: [createdById], references: [id])
+  playerRoles PlayerEventRole[]
+  teams       PersistentTeam[]  @relation("GameEventToPersistentTeam")
+
   @@index([eventDate])
   @@index([status])
   @@index([eventType])
@@ -349,33 +295,57 @@ model GameEvent {
 }
 
 model PlayerEventRole {
-  id              String              @id @default(cuid())
-  gameEvent       GameEvent           @relation(fields: [gameEventId], references: [id], onDelete: Cascade)
-  gameEventId     String
-  player          Player              @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  playerId        String
-  role            EventRole           @relation(fields: [roleId], references: [id])
-  roleId          String
-  
-  // Performance scores
-  garrisonPoints  Int                 @default(0)
-  seedPoints      Int                 @default(0)
-  killPoints      Int                 @default(0)
-  totalPoints     Int                 @default(0) // Calculated field
-  
-  // Additional tracking
-  performanceRating String?           // S, A, B, C rating
-  mvpVotes        Int                 @default(0)
-  notes           String?
-  
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
+  id                String    @id @default(cuid())
+  gameEventId       String
+  playerId          String
+  roleId            String
+  garrisonPoints    Int       @default(0)
+  seedPoints        Int       @default(0)
+  killPoints        Int       @default(0)
+  totalPoints       Int       @default(0)
+  performanceRating String?
+  mvpVotes          Int       @default(0)
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  gameEvent         GameEvent @relation(fields: [gameEventId], references: [id], onDelete: Cascade)
+  player            Player    @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
+  role              EventRole @relation(fields: [roleId], references: [id])
+
   @@unique([gameEventId, playerId, roleId])
   @@index([gameEventId])
   @@index([playerId])
   @@index([roleId])
   @@index([totalPoints])
-  @@index([killPoints]) // Most important metric
+  @@index([killPoints])
 }
 
+enum Role {
+  ADMIN
+  VIEWER
+  EVENT_MANAGER
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum UploadStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  SCORING
+  FINALIZED
+}
+
+enum RosterPosition {
+  STARTER
+  SUBSTITUTE
+}

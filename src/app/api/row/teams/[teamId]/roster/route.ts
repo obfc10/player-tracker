@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/row/teams/[teamId]/roster - Get team roster
 export async function GET(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
 
     const team = await prisma.persistentTeam.findUnique({
       where: { id: teamId },
@@ -68,7 +68,7 @@ export async function GET(
 // POST /api/row/teams/[teamId]/roster - Add players to team roster
 export async function POST(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -76,7 +76,7 @@ export async function POST(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
     const { playerIds, position = 'STARTER' } = await request.json();
 
     if (!playerIds || !Array.isArray(playerIds) || playerIds.length === 0) {
@@ -162,7 +162,7 @@ export async function POST(
 // PUT /api/row/teams/[teamId]/roster - Bulk update roster positions
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -170,7 +170,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
     const { updates } = await request.json(); // Array of { playerId, position }
 
     if (!updates || !Array.isArray(updates)) {

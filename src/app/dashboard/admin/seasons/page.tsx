@@ -373,7 +373,7 @@ export default function SeasonsPage() {
                 Season Creation
               </h4>
               <p className="text-gray-400">
-                Create seasons when merits reset. Use the "Detect Merit Reset" button to automatically identify when a new season should begin.
+                Create seasons when merits reset. Use the &quot;Detect Merit Reset&quot; button to automatically identify when a new season should begin.
               </p>
             </div>
             <div className="p-4 bg-gray-700 rounded-lg">

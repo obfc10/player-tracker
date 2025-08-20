@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
+import { MeritTrendChart, AlliancePerformanceChart } from '@/components/charts';
 import {
   Trophy,
   TrendingUp,
@@ -30,7 +32,8 @@ import {
   MapPin,
   DollarSign,
   Flame,
-  AlignLeft
+  AlignLeft,
+  AlertTriangle
 } from 'lucide-react';
 
 interface MeritPlayer {
@@ -108,6 +111,14 @@ interface MeritData {
   topConsistency: MeritPlayer[];
   topMomentum: MeritPlayer[];
   
+  // Worst performers
+  lowestMerits: MeritPlayer[];
+  lowestEfficiency: MeritPlayer[];
+  lowestDensity: MeritPlayer[];
+  lowestPercentile: MeritPlayer[];
+  negativeMomentum: MeritPlayer[];
+  negativeGrowth: MeritPlayer[];
+  
   // Alliance analysis
   allianceAnalysis: AllianceAnalysis[];
   availableAlliances: string[];
@@ -124,6 +135,14 @@ interface MeritData {
     averageMeritDensity: number;
   };
   
+  // Chart data
+  trendData: Array<{
+    date: string;
+    timestamp: number;
+    totalMerits: number;
+    alliances: { [key: string]: number };
+  }>;
+
   // Meta information
   timeframe: string;
   snapshotInfo: {
@@ -142,6 +161,7 @@ export default function MeritsPage() {
   const [selectedAlliance, setSelectedAlliance] = useState('all');
   const [activeTab, setActiveTab] = useState('core');
   const [hasMounted, setHasMounted] = useState(false);
+  const [viewAmount, setViewAmount] = useState(10);
 
   useEffect(() => {
     setHasMounted(true);
@@ -239,13 +259,32 @@ export default function MeritsPage() {
     players: MeritPlayer[], 
     title: string, 
     icon: React.ElementType,
-    valueFormatter: (player: MeritPlayer) => { value: string; label: string; color?: string }
-  ) => (
+    valueFormatter: (player: MeritPlayer) => { value: string; label: string; color?: string },
+    showViewControls: boolean = false
+  ) => {
+    return (
     <Card className="bg-gray-800 border-gray-700">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          {React.createElement(icon, { className: "w-5 h-5 text-yellow-400" })}
-          {title}
+        <CardTitle className="text-white flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {React.createElement(icon, { className: "w-5 h-5 text-yellow-400" })}
+            {title}
+          </div>
+          {showViewControls && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-400">Show:</span>
+              <select
+                value={viewAmount}
+                onChange={(e) => setViewAmount(Number(e.target.value))}
+                className="bg-gray-700 border-gray-600 text-white text-sm rounded px-2 py-1"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -255,7 +294,7 @@ export default function MeritsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {players.slice(0, 10).map((player, index) => {
+            {players.slice(0, showViewControls ? viewAmount : 10).map((player, index) => {
               const { value, label, color } = valueFormatter(player);
               return (
                 <div 
@@ -271,8 +310,15 @@ export default function MeritsPage() {
                       <p className="text-white font-medium">{player.currentName || player.name}</p>
                       <div className="flex items-center gap-2 text-sm">
                         {player.allianceTag && (
-                          <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-xs">
+                          <Badge className={`text-xs ${
+                            isManagedAlliance(player.allianceTag) 
+                              ? getManagedAllianceColor(player.allianceTag)
+                              : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                          }`}>
                             {player.allianceTag}
+                            {isManagedAlliance(player.allianceTag) && (
+                              <span className="ml-1 text-xs">★</span>
+                            )}
                           </Badge>
                         )}
                         <span className="text-gray-400">Lv.{player.cityLevel || '0'}</span>
@@ -294,7 +340,8 @@ export default function MeritsPage() {
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -364,10 +411,20 @@ export default function MeritsPage() {
                   : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
               }`}
             >
-              <option value="all">All Alliances</option>
-              {data?.availableAlliances?.map(alliance => (
-                <option key={alliance} value={alliance}>{alliance}</option>
+              {ALLIANCE_FILTER_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
+              {data?.availableAlliances && (
+                <optgroup label="All Available Alliances">
+                  {sortAlliancesByPriority(data.availableAlliances).map(alliance => (
+                    <option key={`all-${alliance}`} value={alliance}>
+                      {alliance} {isManagedAlliance(alliance) ? '★' : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
             {selectedAlliance !== 'all' && (
               <Badge className="bg-purple-600/30 text-purple-200 border-purple-500/50 shadow-lg mt-2">
@@ -494,6 +551,13 @@ export default function MeritsPage() {
         </div>
       )}
 
+      {/* Merit Trend Chart */}
+      <MeritTrendChart 
+        data={data?.trendData || []} 
+        loading={loading}
+        selectedAlliance={selectedAlliance}
+      />
+
       {/* Analytics Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-gray-800 w-full justify-start">
@@ -513,6 +577,10 @@ export default function MeritsPage() {
                 Week/Month
               </span>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="worst" className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Worst Performers
           </TabsTrigger>
           <TabsTrigger value="alliances" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
@@ -732,22 +800,157 @@ export default function MeritsPage() {
           )}
         </TabsContent>
 
+        {/* Worst Performers */}
+        <TabsContent value="worst">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {renderPlayerTable(
+              data?.lowestMerits || [],
+              'Lowest Total Merits',
+              AlertTriangle,
+              (player) => ({
+                value: formatNumber(player.merits),
+                label: 'Total merits earned',
+                color: 'text-red-400'
+              }),
+              true
+            )}
+
+            {renderPlayerTable(
+              data?.lowestEfficiency || [],
+              'Lowest Merit Efficiency',
+              Target,
+              (player) => ({
+                value: `${formatDecimal(player.meritPowerRatio || 0)}%`,
+                label: 'Merit per power ratio',
+                color: 'text-red-400'
+              }),
+              true
+            )}
+
+            {renderPlayerTable(
+              data?.lowestDensity || [],
+              'Lowest Merit Density',
+              Gauge,
+              (player) => ({
+                value: formatDecimal(player.meritDensity || 0),
+                label: 'Merits per million power',
+                color: 'text-red-400'
+              }),
+              true
+            )}
+
+            {renderPlayerTable(
+              data?.lowestPercentile || [],
+              'Bottom Kingdom Percentile',
+              Percent,
+              (player) => ({
+                value: `${formatDecimal(player.meritPercentile || 0)}%`,
+                label: `Rank ${player.kingdomRank || 'N/A'} in kingdom`,
+                color: 'text-red-400'
+              }),
+              true
+            )}
+
+            {data?.negativeGrowth && data.negativeGrowth.length > 0 ? renderPlayerTable(
+              data.negativeGrowth,
+              'Negative Merit Growth',
+              TrendingUp,
+              (player) => ({
+                value: formatNumber(player.meritGrowth || 0),
+                label: 'Merit decrease',
+                color: 'text-red-400'
+              }),
+              true
+            ) : (
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-red-400" />
+                    Negative Merit Growth
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-gray-400">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No negative growth data available</p>
+                    <p className="text-sm mt-2">All active players showing positive or neutral growth</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {data?.negativeMomentum && data.negativeMomentum.length > 0 ? renderPlayerTable(
+              data.negativeMomentum,
+              'Negative Momentum',
+              Activity,
+              (player) => ({
+                value: formatNumber(player.momentumScore || 0),
+                label: 'Declining activity trend',
+                color: 'text-red-400'
+              }),
+              true
+            ) : (
+              <Card className="bg-gray-800 border-gray-700">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-red-400" />
+                    Negative Momentum
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-gray-400">
+                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No negative momentum data available</p>
+                    <p className="text-sm mt-2">All active players showing positive momentum</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
         {/* Alliance Analysis */}
         <TabsContent value="alliances">
           <div className="space-y-6">
+            {/* Alliance Performance Chart */}
+            <AlliancePerformanceChart 
+              data={data?.allianceAnalysis?.map(alliance => ({
+                alliance: alliance.allianceTag,
+                totalMerits: alliance.totalMerits,
+                averageMerits: alliance.averageMerits,
+                memberCount: alliance.memberCount,
+                totalPower: 0, // Power data not available in current API
+                averagePower: 0, // Power data not available in current API
+                efficiency: alliance.averageMerits, // Use average merits as efficiency metric
+                rank: 0 // Will be calculated by rank
+              })) || []} 
+              loading={loading}
+              metric="totalMerits"
+              showTop={15}
+            />
+
             {data?.allianceAnalysis && data.allianceAnalysis.length > 0 && (
               <div className="grid grid-cols-1 gap-6">
-                {data.allianceAnalysis.slice(0, 10).map((alliance, index) => (
-                  <Card key={alliance.allianceTag} className="bg-gray-800 border-gray-700">
-                    <CardHeader>
-                      <CardTitle className="text-white flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">#{index + 1}</span>
+                {data.allianceAnalysis.slice(0, 10).map((alliance, index) => {
+                  const isManaged = isManagedAlliance(alliance.allianceTag);
+                  return (
+                    <Card key={alliance.allianceTag} className={`border-gray-700 ${
+                      isManaged ? 'bg-gray-800 ring-2 ring-yellow-400/30' : 'bg-gray-800'
+                    }`}>
+                      <CardHeader>
+                        <CardTitle className="text-white flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              isManaged ? 'bg-yellow-600' : 'bg-blue-600'
+                            }`}>
+                              <span className="text-white font-bold text-sm">#{index + 1}</span>
+                            </div>
+                            <Shield className={`w-6 h-6 ${isManaged ? 'text-yellow-400' : 'text-blue-400'}`} />
+                            <div className="flex items-center gap-2">
+                              <span>{alliance.allianceTag}</span>
+                              {isManaged && <span className="text-yellow-400 text-lg">★</span>}
+                            </div>
                           </div>
-                          <Shield className="w-6 h-6 text-blue-400" />
-                          <span>{alliance.allianceTag}</span>
-                        </div>
                         <div className="text-right">
                           <p className="text-2xl font-bold text-yellow-400">
                             {formatNumber(alliance.totalMerits)}
@@ -755,8 +958,8 @@ export default function MeritsPage() {
                           <p className="text-sm text-gray-400">Total Merits</p>
                         </div>
                       </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                      </CardHeader>
+                      <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <p className="text-sm text-gray-400">Members</p>
@@ -792,10 +995,11 @@ export default function MeritsPage() {
                             ))}
                           </div>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

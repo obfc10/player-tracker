@@ -9,6 +9,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { ChangesTable } from '@/components/changes/ChangesTable';
 import { ChangesSummary } from '@/components/changes/ChangesSummary';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 import {
   BarChart3,
   RefreshCw,
@@ -181,7 +182,7 @@ export default function ChangesPage() {
           <div className="flex items-center gap-2">
             {data && (
               <ExportButton
-                data={[...data.gainers, ...data.losers, ...data.smallestIncreases].map(change => ({
+                data={[...(data.gainers || []), ...(data.losers || []), ...(data.smallestIncreases || [])].map(change => ({
                   playerName: change.currentName || change.name,
                   changeType: change.change > 0 ? 'Gain' : 'Loss',
                   field: selectedMetric,
@@ -310,15 +311,30 @@ export default function ChangesPage() {
               onChange={(e) => setSelectedAlliance(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
             >
-              <option value="all">All Alliances</option>
-              {data?.alliances.map(alliance => (
-                <option key={alliance} value={alliance}>{alliance}</option>
+              {ALLIANCE_FILTER_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
+              <optgroup label="All Available Alliances">
+                {sortAlliancesByPriority(data?.alliances || []).map(alliance => (
+                  <option key={`all-${alliance}`} value={alliance}>
+                    {alliance} {isManagedAlliance(alliance) ? '★' : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
             {selectedAlliance !== 'all' && (
               <div className="mt-2">
-                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                <Badge className={`${
+                  isManagedAlliance(selectedAlliance)
+                    ? getManagedAllianceColor(selectedAlliance)
+                    : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                }`}>
                   {selectedAlliance}
+                  {isManagedAlliance(selectedAlliance) && (
+                    <span className="ml-1">★</span>
+                  )}
                 </Badge>
               </div>
             )}
@@ -362,7 +378,7 @@ export default function ChangesPage() {
               Custom Period Selected
             </h3>
             <p className="text-yellow-200 mb-4">
-              Please select both "From" and "To" snapshots above to view the changes analysis.
+              Please select both &quot;From&quot; and &quot;To&quot; snapshots above to view the changes analysis.
             </p>
             <p className="text-sm text-yellow-300">
               Choose two different time periods to compare player progression between specific dates.

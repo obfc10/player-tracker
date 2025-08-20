@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 import {
   GitBranch,
   RefreshCw,
@@ -314,10 +315,18 @@ export default function AllianceMovesPage() {
               onChange={(e) => setSelectedAlliance(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
             >
-              <option value="all">All Alliances</option>
-              {data?.filters.alliances.map(alliance => (
-                <option key={alliance} value={alliance}>{alliance}</option>
+              {ALLIANCE_FILTER_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
+              <optgroup label="All Available Alliances">
+                {sortAlliancesByPriority(data?.filters.alliances || []).map(alliance => (
+                  <option key={`all-${alliance}`} value={alliance}>
+                    {alliance} {isManagedAlliance(alliance) ? '★' : ''}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </CardContent>
         </Card>
@@ -404,7 +413,12 @@ export default function AllianceMovesPage() {
                 <div
                   key={move.id}
                   onClick={() => handlePlayerClick(move)}
-                  className="flex items-center justify-between p-4 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer transition-colors"
+                  className={`flex items-center justify-between p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600 ${
+                    (move.oldAlliance && isManagedAlliance(move.oldAlliance)) || 
+                    (move.newAlliance && isManagedAlliance(move.newAlliance))
+                      ? 'bg-gray-700 ring-1 ring-yellow-400/30' 
+                      : 'bg-gray-700'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
                     {getMoveIcon(move.moveType)}
@@ -423,12 +437,26 @@ export default function AllianceMovesPage() {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="text-gray-300">
+                        <span className={`${
+                          move.oldAlliance && isManagedAlliance(move.oldAlliance) 
+                            ? 'text-yellow-400 font-medium' 
+                            : 'text-gray-300'
+                        }`}>
                           {move.oldAlliance || 'No Alliance'}
+                          {move.oldAlliance && isManagedAlliance(move.oldAlliance) && (
+                            <span className="ml-1">★</span>
+                          )}
                         </span>
                         <ArrowRight className="w-4 h-4 text-gray-500" />
-                        <span className="text-white">
+                        <span className={`${
+                          move.newAlliance && isManagedAlliance(move.newAlliance) 
+                            ? 'text-yellow-400 font-medium' 
+                            : 'text-white'
+                        }`}>
                           {move.newAlliance || 'No Alliance'}
+                          {move.newAlliance && isManagedAlliance(move.newAlliance) && (
+                            <span className="ml-1">★</span>
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">

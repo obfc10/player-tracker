@@ -17,6 +17,7 @@ import {
   ArcElement
 } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import { PlayerProgressChart } from '@/components/charts';
 
 ChartJS.register(
   CategoryScale,
@@ -210,6 +211,28 @@ export function PlayerCard({ lordId, onClose }: PlayerCardProps) {
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* Player Progress Chart */}
+          <div className="mt-6">
+            <PlayerProgressChart 
+              data={data?.snapshots?.map((snapshot: any) => ({
+                date: snapshot.timestamp,
+                timestamp: new Date(snapshot.timestamp).getTime(),
+                merits: parseInt(snapshot.merits || '0'),
+                power: parseInt(snapshot.currentPower || '0'),
+                unitsKilled: parseInt(snapshot.unitsKilled || '0'),
+                victories: snapshot.victories || 0,
+                defeats: snapshot.defeats || 0,
+                allianceTag: snapshot.allianceTag,
+                cityLevel: snapshot.cityLevel
+              })) || []}
+              playerName={data?.player?.currentName || 'Unknown Player'}
+              playerId={lordId}
+              loading={loading}
+              metric="merits"
+              showDual={false}
+            />
           </div>
         </TabsContent>
 

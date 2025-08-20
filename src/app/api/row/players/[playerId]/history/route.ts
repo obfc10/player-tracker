@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/row/players/[playerId]/history - Get player's event history and analytics
 export async function GET(
   request: NextRequest,
-  { params }: { params: { playerId: string } }
+  { params }: { params: Promise<{ playerId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { playerId } = params;
+    const { playerId } = await params;
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
 
@@ -87,9 +87,9 @@ export async function GET(
       averageKillPoints: finalizedEvents.length > 0 ? 
         finalizedEvents.reduce((sum, e) => sum + e.killPoints, 0) / finalizedEvents.length : 0,
       bestPerformance: finalizedEvents.length > 0 ? 
-        Math.max(...finalizedEvents.map(e => e.totalPoints)) : 0,
+        Math.max(...finalizedEvents.map(e => e.totalPoints).filter(p => typeof p === 'number')) : 0,
       bestKillPoints: finalizedEvents.length > 0 ? 
-        Math.max(...finalizedEvents.map(e => e.killPoints)) : 0,
+        Math.max(...finalizedEvents.map(e => e.killPoints).filter(p => typeof p === 'number')) : 0,
       mvpVotes: finalizedEvents.reduce((sum, e) => sum + (e.mvpVotes || 0), 0)
     };
 

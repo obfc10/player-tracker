@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // PUT /api/events/[eventId]/teams/[teamId] - Update a team
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string; teamId: string } }
+  { params }: { params: Promise<{ eventId: string; teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId, teamId } = params;
+    const { eventId, teamId } = await params;
     const { name, color, description } = await request.json();
 
     if (!name || name.trim().length === 0) {
@@ -101,7 +101,7 @@ export async function PUT(
 // DELETE /api/events/[eventId]/teams/[teamId] - Delete a team
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string; teamId: string } }
+  { params }: { params: Promise<{ eventId: string; teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -109,7 +109,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId, teamId } = params;
+    const { eventId, teamId } = await params;
 
     // Verify team exists and belongs to the event
     const existingTeam = await prisma.eventTeam.findFirst({

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
+import { getManagedAllianceTags } from '@/lib/alliance-config';
 
 // Force dynamic rendering
 export const runtime = 'nodejs';
@@ -61,7 +62,23 @@ export async function GET(request: NextRequest) {
     };
 
     if (alliance !== 'all') {
-      whereClause.allianceTag = alliance;
+      if (alliance === 'managed') {
+        // Filter for managed alliances (PLAC, FLAs, Plaf)
+        const managedTags = getManagedAllianceTags();
+        whereClause.allianceTag = {
+          in: managedTags
+        };
+      } else if (alliance === 'others') {
+        // Filter for non-managed alliances
+        const managedTags = getManagedAllianceTags();
+        whereClause.allianceTag = {
+          notIn: managedTags,
+          not: null
+        };
+      } else {
+        // Filter for specific alliance
+        whereClause.allianceTag = alliance;
+      }
     }
 
     // Define if field needs numeric sorting (stored as String but should sort numerically)

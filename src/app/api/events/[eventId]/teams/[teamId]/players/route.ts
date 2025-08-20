@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // POST /api/events/[eventId]/teams/[teamId]/players - Add players to team
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string; teamId: string } }
+  { params }: { params: Promise<{ eventId: string; teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId, teamId } = params;
+    const { eventId, teamId } = await params;
     const { playerIds } = await request.json();
 
     if (!playerIds || !Array.isArray(playerIds) || playerIds.length === 0) {

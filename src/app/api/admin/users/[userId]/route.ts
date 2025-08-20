@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // DELETE user
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { userId } = params;
+    const { userId } = await params;
 
     // Prevent self-deletion
     if (userId === session.user.id) {
@@ -38,7 +38,7 @@ export async function DELETE(
 // PATCH user (for status updates and user details)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -46,7 +46,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const { userId } = params;
+    const { userId } = await params;
     const { status, role, username, name, resetPassword } = await request.json();
 
     // Validate status if provided

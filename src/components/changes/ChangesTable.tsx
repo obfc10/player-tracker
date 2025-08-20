@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getManagedAllianceColor, isManagedAlliance } from '@/lib/alliance-config';
 import { 
   TrendingUp,
   TrendingDown,
@@ -176,7 +177,11 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
             <div
               key={change.playerId}
               onClick={() => onPlayerClick(change)}
-              className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer transition-colors"
+              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-600 ${
+                change.allianceTag && isManagedAlliance(change.allianceTag) 
+                  ? 'bg-gray-700 ring-1 ring-yellow-400/30' 
+                  : 'bg-gray-700'
+              }`}
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8 h-8 bg-gray-600 rounded-full text-sm font-bold text-white">
@@ -186,8 +191,15 @@ export function ChangesTable({ changes, title, type, metric, loading, onPlayerCl
                   <p className="text-white font-medium">{change.name}</p>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     {change.allianceTag && (
-                      <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                      <Badge className={`text-xs ${
+                        isManagedAlliance(change.allianceTag) 
+                          ? getManagedAllianceColor(change.allianceTag)
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      }`}>
                         {change.allianceTag}
+                        {isManagedAlliance(change.allianceTag) && (
+                          <span className="ml-1">★</span>
+                        )}
                       </Badge>
                     )}
                     <span>Level {change.cityLevel}</span>

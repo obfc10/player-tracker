@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/row/game-events/[eventId] - Get specific game event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
 
     const gameEvent = await prisma.gameEvent.findUnique({
       where: { id: eventId },
@@ -81,7 +81,7 @@ export async function GET(
 // PUT /api/row/game-events/[eventId] - Update game event
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -89,7 +89,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
     const { 
       name, 
       description, 
@@ -178,7 +178,7 @@ export async function PUT(
 // DELETE /api/row/game-events/[eventId] - Delete game event
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -186,7 +186,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
 
     // Check if event exists
     const existingEvent = await prisma.gameEvent.findUnique({

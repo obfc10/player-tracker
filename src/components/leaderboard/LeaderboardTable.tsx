@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -176,10 +177,20 @@ export function LeaderboardTable({
                 : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
             }`}
           >
-            <option value="all">All Alliances</option>
-            {data.alliances.map(alliance => (
-              <option key={alliance} value={alliance}>{alliance}</option>
+            {ALLIANCE_FILTER_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
+            {data.alliances && (
+              <optgroup label="All Available Alliances">
+                {sortAlliancesByPriority(data.alliances).map(alliance => (
+                  <option key={`all-${alliance}`} value={alliance}>
+                    {alliance} {isManagedAlliance(alliance) ? '★' : ''}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
           {data.alliance !== 'all' && (
             <Badge className="bg-purple-600/30 text-purple-200 border-purple-500/50 shadow-lg">
@@ -255,7 +266,11 @@ export function LeaderboardTable({
                   <tr
                     key={player.lordId}
                     onClick={() => onPlayerClick(player)}
-                    className="hover:bg-gray-700 cursor-pointer transition-colors"
+                    className={`cursor-pointer transition-colors hover:bg-gray-700 ${
+                      player.allianceTag && isManagedAlliance(player.allianceTag) 
+                        ? 'ring-1 ring-yellow-400/30 bg-gray-800/50' 
+                        : ''
+                    }`}
                   >
                     {visibleColumns.map(column => (
                       <td key={column.key} className="px-4 py-3 text-sm text-gray-300">
@@ -272,8 +287,15 @@ export function LeaderboardTable({
                         )}
                         {column.key === 'allianceTag' && (
                           player.allianceTag ? (
-                            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                            <Badge className={`${
+                              isManagedAlliance(player.allianceTag) 
+                                ? getManagedAllianceColor(player.allianceTag)
+                                : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                            }`}>
                               {player.allianceTag}
+                              {isManagedAlliance(player.allianceTag) && (
+                                <span className="ml-1 text-xs">★</span>
+                              )}
                             </Badge>
                           ) : (
                             <span className="text-gray-500">-</span>

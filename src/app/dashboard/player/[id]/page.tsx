@@ -1,17 +1,19 @@
 'use client';
 
+import { use } from 'react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 interface PlayerPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default function PlayerPage({ params }: PlayerPageProps) {
+  const { id } = use(params);
   const router = useRouter();
 
   const handleBack = () => {
@@ -39,7 +41,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
 
       {/* Player Card Content */}
       <div className="p-6">
-        <PlayerCard lordId={params.id} />
+        <PlayerCard lordId={id} />
       </div>
     </div>
   );

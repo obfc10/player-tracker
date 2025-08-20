@@ -93,7 +93,8 @@ export class DataExporter {
     worksheet.columns.forEach(column => {
       if (column.values) {
         const lengths = column.values.map(v => v ? v.toString().length : 0);
-        const maxLength = Math.max(...lengths.filter(v => typeof v === 'number'));
+        const numericLengths = lengths.filter(v => typeof v === 'number');
+        const maxLength = numericLengths.length > 0 ? Math.max(...numericLengths) : 10;
         column.width = Math.min(Math.max(maxLength + 2, 10), 50);
       }
     });

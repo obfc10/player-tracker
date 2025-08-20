@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // PUT /api/row/game-events/[eventId]/scores/[scoreId] - Update player score
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string; scoreId: string } }
+  { params }: { params: Promise<{ eventId: string; scoreId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId, scoreId } = params;
+    const { eventId, scoreId } = await params;
     const { 
       garrisonPoints, 
       seedPoints, 

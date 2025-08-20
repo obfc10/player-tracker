@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET /api/row/game-events/[eventId]/scoring - Get all player scores for event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
 
     const playerRoles = await prisma.playerEventRole.findMany({
       where: { gameEventId: eventId },
@@ -51,7 +51,7 @@ export async function GET(
 // POST /api/row/game-events/[eventId]/scoring - Add/update player scores
 export async function POST(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -59,7 +59,7 @@ export async function POST(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
     const { playerScores } = await request.json();
 
     if (!playerScores || !Array.isArray(playerScores)) {
@@ -163,7 +163,7 @@ export async function POST(
 // PUT /api/row/game-events/[eventId]/scoring - Finalize event scoring
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -171,7 +171,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId } = params;
+    const { eventId } = await params;
     const { outcome } = await request.json();
 
     // Validate event exists

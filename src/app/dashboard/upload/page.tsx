@@ -207,7 +207,7 @@ export default function UploadPage() {
               <ul className="text-gray-400 space-y-1">
                 <li>• Excel files (.xlsx or .xls)</li>
                 <li>• Maximum size: 50MB</li>
-                <li>• Data should be in "671" sheet</li>
+                <li>• Data should be in &quot;671&quot; sheet</li>
                 <li>• Starting from row 2 (row 1 is headers)</li>
               </ul>
             </div>

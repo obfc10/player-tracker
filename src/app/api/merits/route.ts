@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getManagedAllianceTags, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,19 @@ export async function GET(request: NextRequest) {
 
     // Add alliance filter if specified
     if (allianceFilter !== 'all') {
-      whereClause.allianceTag = allianceFilter;
+      if (allianceFilter === 'managed') {
+        // Filter for managed alliances
+        const managedTags = getManagedAllianceTags();
+        whereClause.allianceTag = { in: managedTags };
+      } else if (allianceFilter === 'others') {
+        // Filter for non-managed alliances
+        const managedTags = getManagedAllianceTags();
+        whereClause.allianceTag = { notIn: managedTags };
+        whereClause.allianceTag.not = null; // Exclude null alliance tags
+      } else {
+        // Specific alliance filter
+        whereClause.allianceTag = allianceFilter;
+      }
     }
 
     // For growth calculations, we need to compare with older snapshots within the same season scope
@@ -100,6 +113,15 @@ export async function GET(request: NextRequest) {
         }
       }
     });
+
+    // Ensure we have valid arrays
+    if (!Array.isArray(currentPlayers)) {
+      return NextResponse.json({ error: 'No valid player data found' }, { status: 404 });
+    }
+
+    if (!Array.isArray(allCurrentPlayers)) {
+      return NextResponse.json({ error: 'No valid kingdom data found' }, { status: 404 });
+    }
 
     // Calculate merit analytics for each player
     const calculatePlayerMetrics = (snapshot: any, allPlayers: any[]) => {
@@ -176,10 +198,20 @@ export async function GET(request: NextRequest) {
     );
 
     // Enhanced growth calculations with velocity, acceleration, and consistency
-    let playersWithGrowth = playersWithMetrics;
+    let playersWithGrowth = Array.isArray(playersWithMetrics) ? playersWithMetrics : [];
+    
+    // Extra safety check to ensure playersWithGrowth is always an array
+    if (!Array.isArray(playersWithGrowth)) {
+      playersWithGrowth = [];
+    }
+
+    // Initialize variables that will be used later for trend data
+    let allHistoricalSnapshots: any[] = [];
+    let historicalData = new Map();
+
     if (compareSnapshot) {
       // Get multiple historical snapshots for advanced metrics
-      const allHistoricalSnapshots = await prisma.snapshot.findMany({
+      allHistoricalSnapshots = await prisma.snapshot.findMany({
         where: {
           ...snapshotFilter,
           timestamp: { lte: latestSnapshot.timestamp }
@@ -189,7 +221,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Get player data for all historical snapshots
-      const historicalData = new Map();
+      historicalData.clear();
       for (const snapshot of allHistoricalSnapshots) {
         const players = await prisma.playerSnapshot.findMany({
           where: { snapshotId: snapshot.id },
@@ -228,7 +260,7 @@ export async function GET(request: NextRequest) {
         }])
       );
 
-      playersWithGrowth = playersWithMetrics.map(player => {
+      playersWithGrowth = (Array.isArray(playersWithMetrics) ? playersWithMetrics : []).map(player => {
         const oldData = oldMeritsMap.get(player.playerId) || { merits: 0, power: 0 };
         const growth = player.rawMerits - oldData.merits;
         let growthPercent = oldData.merits > 0 ? (growth / oldData.merits) * 100 : 0;
@@ -302,10 +334,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get available alliances for filter
-    const availableAlliances = [...new Set(allCurrentPlayers
-      .map(p => p.allianceTag)
-      .filter(tag => tag !== null)
-    )].sort();
+    const allianceTags = Array.isArray(allCurrentPlayers) 
+      ? allCurrentPlayers.map(p => p.allianceTag).filter(tag => tag !== null)
+      : [];
+    const availableAlliances = sortAlliancesByPriority([...new Set(allianceTags)]);
 
     // Sort and get top players for each category
     const topMerits = [...playersWithGrowth]
@@ -357,6 +389,37 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => ((b as any).momentumScore || 0) - ((a as any).momentumScore || 0))
       .slice(0, 50) : [];
 
+    // Worst performers (bottom rankings)
+    const lowestMerits = [...playersWithGrowth]
+      .filter(p => p.rawPower >= 100000) // Active players with reasonable power
+      .sort((a, b) => a.rawMerits - b.rawMerits)
+      .slice(0, 50);
+
+    const lowestEfficiency = [...playersWithGrowth]
+      .filter(p => p.rawPower >= 1000000) // Only include players with 1M+ power
+      .sort((a, b) => a.meritPowerRatio - b.meritPowerRatio)
+      .slice(0, 50);
+
+    const lowestDensity = [...playersWithGrowth]
+      .filter(p => p.rawPower >= 1000000)
+      .sort((a, b) => a.meritDensity - b.meritDensity)
+      .slice(0, 50);
+
+    const lowestPercentile = [...playersWithGrowth]
+      .filter(p => p.rawPower > 0)
+      .sort((a, b) => a.meritPercentile - b.meritPercentile)
+      .slice(0, 50);
+
+    const negativeMomentum = timeframe !== 'current' ? [...playersWithGrowth]
+      .filter(p => (p as any).momentumScore !== undefined && (p as any).momentumScore < 0)
+      .sort((a, b) => ((a as any).momentumScore || 0) - ((b as any).momentumScore || 0))
+      .slice(0, 50) : [];
+
+    const negativeGrowth = timeframe !== 'current' ? [...playersWithGrowth]
+      .filter(p => (p as any).meritGrowth !== undefined && (p as any).meritGrowth < 0)
+      .sort((a, b) => ((a as any).meritGrowth || 0) - ((b as any).meritGrowth || 0))
+      .slice(0, 50) : [];
+
     // Alliance merit distribution analysis
     const allianceDistribution = new Map();
     playersWithGrowth.forEach(player => {
@@ -392,7 +455,17 @@ export async function GET(request: NextRequest) {
           percentile: m.meritPercentile
         })).sort((a: any, b: any) => b.merits - a.merits)
       };
-    }).sort((a: any, b: any) => b.totalMerits - a.totalMerits);
+    }).sort((a: any, b: any) => {
+      // Prioritize managed alliances first
+      const aIsManaged = isManagedAlliance(a.allianceTag);
+      const bIsManaged = isManagedAlliance(b.allianceTag);
+      
+      if (aIsManaged && !bIsManaged) return -1;
+      if (!aIsManaged && bIsManaged) return 1;
+      
+      // If both are managed or both are not managed, sort by total merits
+      return b.totalMerits - a.totalMerits;
+    });
 
     // Calculate kingdom statistics
     const totalMerits = playersWithMetrics.reduce((sum, p) => sum + p.rawMerits, 0);
@@ -402,6 +475,41 @@ export async function GET(request: NextRequest) {
       ? validEfficiencyPlayers.reduce((sum, p) => sum + p.meritPowerRatio, 0) / validEfficiencyPlayers.length 
       : 0;
 
+    // Generate trend data for charts (only when we have historical data)
+    let trendData: any[] = [];
+    if (compareSnapshot && allHistoricalSnapshots) {
+      trendData = allHistoricalSnapshots.slice(0, 14).reverse().map(snapshot => {
+        const snapshotData = allCurrentPlayers.filter(p => 
+          historicalData.has(p.playerId) && 
+          historicalData.get(p.playerId).some((h: any) => h.timestamp.getTime() === snapshot.timestamp.getTime())
+        );
+        
+        const totalMerits = snapshotData.reduce((sum, p) => {
+          const playerHistory = historicalData.get(p.playerId);
+          const snapshotRecord = playerHistory?.find((h: any) => h.timestamp.getTime() === snapshot.timestamp.getTime());
+          return sum + (snapshotRecord?.merits || 0);
+        }, 0);
+
+        // Calculate alliance totals for this snapshot
+        const allianceTotals: { [key: string]: number } = {};
+        snapshotData.forEach(player => {
+          if (player.allianceTag) {
+            const playerHistory = historicalData.get(player.playerId);
+            const snapshotRecord = playerHistory?.find((h: any) => h.timestamp.getTime() === snapshot.timestamp.getTime());
+            if (snapshotRecord) {
+              allianceTotals[player.allianceTag] = (allianceTotals[player.allianceTag] || 0) + snapshotRecord.merits;
+            }
+          }
+        });
+
+        return {
+          date: snapshot.timestamp.toISOString().split('T')[0],
+          timestamp: snapshot.timestamp.getTime(),
+          totalMerits,
+          alliances: allianceTotals
+        };
+      });
+    }
 
     return NextResponse.json({
       // Core categories
@@ -417,6 +525,14 @@ export async function GET(request: NextRequest) {
       topAcceleration,
       topConsistency,
       topMomentum,
+      
+      // Worst performers (for improvement identification)
+      lowestMerits,
+      lowestEfficiency,
+      lowestDensity,
+      lowestPercentile,
+      negativeMomentum,
+      negativeGrowth,
       
       // Alliance analysis
       allianceAnalysis,
@@ -435,6 +551,9 @@ export async function GET(request: NextRequest) {
           ? playersWithMetrics.filter(p => p.rawPower >= 1000000).reduce((sum, p) => sum + p.meritDensity, 0) / playersWithMetrics.filter(p => p.rawPower >= 1000000).length 
           : 0
       },
+
+      // Chart data
+      trendData,
       
       // Meta information
       timeframe: timeframe === 'current' ? `Current (${latestSnapshot?.timestamp?.toISOString().split('T')[0] || 'Unknown'})` 

@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // DELETE /api/events/[eventId]/teams/[teamId]/players/[playerId] - Remove player from team
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string; teamId: string; playerId: string } }
+  { params }: { params: Promise<{ eventId: string; teamId: string; playerId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -17,7 +17,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin or Event Manager access required' }, { status: 403 });
     }
 
-    const { eventId, teamId, playerId } = params;
+    const { eventId, teamId, playerId } = await params;
 
     // Verify team exists and belongs to the event
     const team = await prisma.eventTeam.findFirst({
