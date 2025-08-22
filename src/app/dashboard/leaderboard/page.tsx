@@ -390,7 +390,7 @@ export default function LeaderboardPage() {
               <div>
                 <p className="text-gray-400 text-sm font-medium">Top Player Power</p>
                 <p className="text-2xl font-bold text-white">
-                  {playerData?.data[0] ? 
+                  {playerData?.data?.[0] ? 
                     `${(playerData.data[0].currentPower / 1000000).toFixed(1)}M` : 
                     '-'
                   }

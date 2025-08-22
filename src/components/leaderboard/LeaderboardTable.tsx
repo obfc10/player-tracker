@@ -187,7 +187,7 @@ export function LeaderboardTable({
     );
   }
 
-  if (!data || data.data.length === 0) {
+  if (!data || !data.data || data.data.length === 0) {
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8 text-center text-gray-400">
