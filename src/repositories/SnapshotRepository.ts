@@ -149,4 +149,70 @@ export class SnapshotRepository {
       throw new DatabaseError(`Failed to get unique alliances`, error);
     }
   }
+
+  async findMany(options: {
+    limit?: number;
+    offset?: number;
+    kingdom?: string;
+    includePlayerCounts?: boolean;
+  } = {}): Promise<(Snapshot & { playerCount?: number })[]> {
+    try {
+      const { limit = 10, offset = 0, kingdom, includePlayerCounts = false } = options;
+      
+      const whereClause: any = {};
+      if (kingdom) {
+        whereClause.kingdom = kingdom;
+      }
+
+      const snapshots = await prisma.snapshot.findMany({
+        where: whereClause,
+        orderBy: { timestamp: 'desc' },
+        take: limit,
+        skip: offset,
+        ...(includePlayerCounts ? {
+          include: {
+            _count: {
+              select: { players: true }
+            }
+          }
+        } : {})
+      });
+
+      // Transform to include player count
+      return snapshots.map(snapshot => ({
+        ...snapshot,
+        ...(includePlayerCounts ? { playerCount: (snapshot as any)._count?.players || 0 } : {})
+      }));
+    } catch (error) {
+      throw new DatabaseError(`Failed to find snapshots`, error);
+    }
+  }
+
+  async getRecentSnapshots(limit: number = 5): Promise<SnapshotWithMetadata[]> {
+    try {
+      return await prisma.snapshot.findMany({
+        take: limit,
+        orderBy: { timestamp: 'desc' },
+        include: {
+          season: {
+            select: { id: true, name: true, isActive: true }
+          },
+          upload: {
+            select: {
+              id: true,
+              status: true,
+              uploadedBy: {
+                select: { username: true, name: true }
+              }
+            }
+          },
+          _count: {
+            select: { players: true }
+          }
+        }
+      }) as SnapshotWithMetadata[];
+    } catch (error) {
+      throw new DatabaseError(`Failed to get recent snapshots`, error);
+    }
+  }
 }

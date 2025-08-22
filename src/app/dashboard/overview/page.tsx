@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSeason } from '@/contexts/SeasonContext';
-// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AllianceChart } from '@/components/charts/AllianceChart';

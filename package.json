@@ -25,6 +25,7 @@
     "chartjs-adapter-date-fns": "^3.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.1",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.539.0",
     "next": "^15.4.7",

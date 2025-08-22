@@ -3,18 +3,33 @@
  * Replaces scattered console.log statements throughout the application
  */
 
-import { getConfig } from './config';
+// Conditional import for server-side only
+let loggingConfig: any = null;
+let LogLevel: any = null;
 
-export enum LogLevel {
-  ERROR = 0,
-  WARN = 1,
-  INFO = 2,
-  DEBUG = 3,
+if (typeof window === 'undefined') {
+  try {
+    const configModule = require('../config');
+    loggingConfig = configModule.getLoggingConfiguration();
+    LogLevel = configModule.LogLevel;
+  } catch (error) {
+    console.warn('Failed to load logging configuration:', error);
+  }
+} else {
+  // Client-side fallback
+  LogLevel = {
+    ERROR: 1,
+    WARN: 2,
+    INFO: 3,
+    DEBUG: 4
+  };
 }
+
+export { LogLevel };
 
 export interface LogEntry {
   timestamp: string;
-  level: LogLevel;
+  level: any;
   source: string;
   message: string;
   data?: any;
@@ -22,7 +37,7 @@ export interface LogEntry {
 }
 
 export interface LoggerConfig {
-  level: LogLevel;
+  level: number;
   enableConsole: boolean;
   enablePersistence: boolean;
   maxEntries: number;
@@ -34,13 +49,23 @@ class Logger {
   private entries: LogEntry[] = [];
 
   private constructor() {
-    const loggingConfig = getConfig('logging');
-    this.config = {
-      level: this.getLogLevelFromEnv(),
-      enableConsole: loggingConfig.enableConsole,
-      enablePersistence: loggingConfig.enablePersistence,
-      maxEntries: loggingConfig.maxEntries,
-    };
+    // Use loaded config or fallback for client side
+    if (loggingConfig) {
+      this.config = {
+        level: loggingConfig.level,
+        enableConsole: loggingConfig.enableConsole,
+        enablePersistence: loggingConfig.enablePersistence,
+        maxEntries: loggingConfig.maxEntries,
+      };
+    } else {
+      // Client-side fallback configuration
+      this.config = {
+        level: LogLevel.INFO,
+        enableConsole: true,
+        enablePersistence: false,
+        maxEntries: 100,
+      };
+    }
   }
 
   static getInstance(): Logger {
@@ -50,7 +75,7 @@ class Logger {
     return Logger.instance;
   }
 
-  private getLogLevelFromEnv(): LogLevel {
+  private getLogLevelFromEnv(): number {
     const envLevel = process.env.LOG_LEVEL?.toUpperCase();
     switch (envLevel) {
       case 'ERROR':
@@ -66,11 +91,11 @@ class Logger {
     }
   }
 
-  private shouldLog(level: LogLevel): boolean {
+  private shouldLog(level: number): boolean {
     return level <= this.config.level;
   }
 
-  private createLogEntry(level: LogLevel, source: string, message: string, data?: any, error?: Error): LogEntry {
+  private createLogEntry(level: number, source: string, message: string, data?: any, error?: Error): LogEntry {
     return {
       timestamp: new Date().toISOString(),
       level,
@@ -112,7 +137,7 @@ class Logger {
     }
   }
 
-  private log(level: LogLevel, source: string, message: string, data?: any, error?: Error): void {
+  private log(level: number, source: string, message: string, data?: any, error?: Error): void {
     if (!this.shouldLog(level)) return;
 
     const entry = this.createLogEntry(level, source, message, data, error);
@@ -154,7 +179,7 @@ class Logger {
   }
 
   // Get logs for debugging (development only)
-  getLogs(level?: LogLevel): LogEntry[] {
+  getLogs(level?: number): LogEntry[] {
     if (process.env.NODE_ENV === 'production') {
       return [];
     }

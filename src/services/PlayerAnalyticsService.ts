@@ -6,7 +6,103 @@
 
 import { BaseService } from './BaseService';
 import { PlayerRepository } from '@/repositories/PlayerRepository';
-import { getConfig } from '@/lib/config';
+import { getFeaturesConfiguration } from '@/config';
+import { formatNumber, formatPercentage } from '@/lib/formatting';
+import { getManagedAllianceByTag } from '@/lib/alliance-config';
+import { prisma } from '@/lib/db';
+
+// Alliance Analytics Interfaces
+export interface AllianceHealthMetrics {
+  combinedPower: number;
+  powerDistribution: Array<{
+    alliance: string;
+    power: number;
+    percentage: number;
+  }>;
+  memberCount: {
+    total: number;
+    byAlliance: Array<{
+      alliance: string;
+      count: number;
+    }>;
+  };
+  activityScore: {
+    percentage: number;
+    activeCount: number;
+    totalCount: number;
+  };
+  inactivePlayers: Array<{
+    playerId: string;
+    name: string;
+    alliance: string;
+    currentPower: number;
+    powerGrowth: number;
+    lastActive: Date;
+    daysSinceActive: number;
+  }>;
+}
+
+export interface PlayerEfficiencyMetrics {
+  playerId: string;
+  name: string;
+  alliance: string;
+  killDeathRatio: number;
+  winRate: number;
+  meritEfficiency: number; // merits per million power
+  powerEfficiency: number; // kills per million power
+  flagged: boolean;
+  flagReasons: string[];
+}
+
+export interface PowerDistributionBracket {
+  bracket: string;
+  range: {
+    min: number;
+    max: number | null;
+  };
+  count: number;
+  percentage: number;
+  players: Array<{
+    playerId: string;
+    name: string;
+    power: number;
+  }>;
+}
+
+export interface PowerDistributionMetrics {
+  brackets: PowerDistributionBracket[];
+  bottom10Percent: Array<{
+    playerId: string;
+    name: string;
+    alliance: string;
+    power: number;
+  }>;
+  powerComposition: {
+    building: number;
+    hero: number;
+    legion: number;
+    tech: number;
+    buildingPercentage: number;
+    heroPercentage: number;
+    legionPercentage: number;
+    techPercentage: number;
+  };
+}
+
+export interface InactiveMember {
+  playerId: string;
+  name: string;
+  alliance: string;
+  currentPower: number;
+  previousPower: number;
+  powerGrowth: number;
+  merits: number;
+  meritGrowth: number;
+  killsGrowth: number;
+  severityLevel: 'low' | 'medium' | 'high' | 'critical';
+  inactivityReasons: string[];
+  daysSinceLastSnapshot: number;
+}
 
 export interface PlayerStats {
   powerGrowthRate: number;
@@ -57,7 +153,7 @@ export interface PlayerAnalysisResult {
 
 export class PlayerAnalyticsService extends BaseService {
   private playerRepository: PlayerRepository;
-  private config = getConfig('playerTracking');
+  private config = getFeaturesConfiguration().playerTracking;
 
   constructor() {
     super();
@@ -295,6 +391,396 @@ export class PlayerAnalyticsService extends BaseService {
       },
       'getPlayerComparison',
       { playerCount: lordIds.length }
+    );
+  }
+
+  /**
+   * Get alliance health metrics for specified alliances
+   */
+  async getAllianceHealthMetrics(
+    allianceTags: string[],
+    snapshotIds: string[]
+  ): Promise<AllianceHealthMetrics> {
+    this.validateRequired({ allianceTags, snapshotIds }, ['allianceTags', 'snapshotIds']);
+
+    return this.executeDbOperation(
+      async () => {
+        // Get all player snapshots for the specified alliances and snapshots
+        const snapshots = await prisma.playerSnapshot.findMany({
+          where: {
+            snapshotId: { in: snapshotIds },
+            allianceTag: { in: allianceTags }
+          },
+          include: {
+            player: true,
+            snapshot: true
+          },
+          orderBy: {
+            snapshot: {
+              timestamp: 'desc'
+            }
+          }
+        });
+
+        // Group snapshots by player to get latest data
+        const latestSnapshots = new Map<string, any>();
+        const previousSnapshots = new Map<string, any>();
+        
+        snapshots.forEach(snapshot => {
+          const playerId = snapshot.playerId;
+          if (!latestSnapshots.has(playerId)) {
+            latestSnapshots.set(playerId, snapshot);
+          } else if (!previousSnapshots.has(playerId)) {
+            previousSnapshots.set(playerId, snapshot);
+          }
+        });
+
+        // Calculate combined power and distribution
+        let combinedPower = 0;
+        const powerByAlliance = new Map<string, number>();
+        const membersByAlliance = new Map<string, number>();
+        const inactivePlayers: AllianceHealthMetrics['inactivePlayers'] = [];
+
+        latestSnapshots.forEach((snapshot, playerId) => {
+          const power = this.parseNumericValue(snapshot.currentPower);
+          const alliance = snapshot.allianceTag || 'Unknown';
+          
+          combinedPower += power;
+          powerByAlliance.set(alliance, (powerByAlliance.get(alliance) || 0) + power);
+          membersByAlliance.set(alliance, (membersByAlliance.get(alliance) || 0) + 1);
+
+          // Check for activity (power growth in last 48h)
+          const previousSnapshot = previousSnapshots.get(playerId);
+          if (previousSnapshot) {
+            const previousPower = this.parseNumericValue(previousSnapshot.currentPower);
+            const powerGrowth = power - previousPower;
+            const timeDiff = new Date(snapshot.snapshot.timestamp).getTime() -
+                            new Date(previousSnapshot.snapshot.timestamp).getTime();
+            const daysSinceActive = timeDiff / (1000 * 60 * 60 * 24);
+
+            if (powerGrowth <= 0 && daysSinceActive <= 2) {
+              inactivePlayers.push({
+                playerId: snapshot.playerId,
+                name: snapshot.name,
+                alliance,
+                currentPower: power,
+                powerGrowth,
+                lastActive: previousSnapshot.snapshot.timestamp,
+                daysSinceActive: Math.round(daysSinceActive)
+              });
+            }
+          }
+        });
+
+        // Calculate power distribution percentages
+        const powerDistribution = Array.from(powerByAlliance.entries()).map(([alliance, power]) => ({
+          alliance,
+          power,
+          percentage: (power / combinedPower) * 100
+        }));
+
+        // Calculate member counts
+        const memberCount = {
+          total: latestSnapshots.size,
+          byAlliance: Array.from(membersByAlliance.entries()).map(([alliance, count]) => ({
+            alliance,
+            count
+          }))
+        };
+
+        // Calculate activity score
+        const activeCount = latestSnapshots.size - inactivePlayers.length;
+        const activityScore = {
+          percentage: (activeCount / latestSnapshots.size) * 100,
+          activeCount,
+          totalCount: latestSnapshots.size
+        };
+
+        return {
+          combinedPower,
+          powerDistribution,
+          memberCount,
+          activityScore,
+          inactivePlayers
+        };
+      },
+      'getAllianceHealthMetrics',
+      { allianceCount: allianceTags.length, snapshotCount: snapshotIds.length }
+    );
+  }
+
+  /**
+   * Get player efficiency metrics for a snapshot
+   */
+  async getPlayerEfficiencyMetrics(snapshotId: string): Promise<PlayerEfficiencyMetrics[]> {
+    this.validateRequired({ snapshotId }, ['snapshotId']);
+
+    return this.executeDbOperation(
+      async () => {
+        const snapshots = await prisma.playerSnapshot.findMany({
+          where: { snapshotId },
+          include: { player: true }
+        });
+
+        return snapshots.map(snapshot => {
+          const power = this.parseNumericValue(snapshot.currentPower);
+          const kills = this.parseNumericValue(snapshot.unitsKilled);
+          const deaths = this.parseNumericValue(snapshot.unitsDead);
+          const victories = this.parseNumericValue(snapshot.victories);
+          const defeats = this.parseNumericValue(snapshot.defeats);
+          const merits = this.parseNumericValue(snapshot.merits);
+
+          // Calculate K/D ratio (handle division by zero)
+          const killDeathRatio = deaths > 0 ? kills / deaths : kills > 0 ? kills : 0;
+          
+          // Calculate win rate
+          const totalBattles = victories + defeats;
+          const winRate = totalBattles > 0 ? (victories / totalBattles) * 100 : 0;
+          
+          // Calculate merit efficiency (merits per million power)
+          const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+          
+          // Calculate power efficiency (kills per million power)
+          const powerEfficiency = power > 0 ? (kills / (power / 1000000)) : 0;
+
+          // Flag players with poor performance
+          const flagReasons: string[] = [];
+          if (killDeathRatio < 10) {
+            flagReasons.push(`Low K/D ratio: ${killDeathRatio.toFixed(2)}`);
+          }
+          if (winRate < 60 && totalBattles > 10) {
+            flagReasons.push(`Low win rate: ${winRate.toFixed(1)}%`);
+          }
+
+          return {
+            playerId: snapshot.playerId,
+            name: snapshot.name,
+            alliance: snapshot.allianceTag || 'None',
+            killDeathRatio,
+            winRate,
+            meritEfficiency,
+            powerEfficiency,
+            flagged: flagReasons.length > 0,
+            flagReasons
+          };
+        });
+      },
+      'getPlayerEfficiencyMetrics',
+      { snapshotId }
+    );
+  }
+
+  /**
+   * Get power distribution metrics for alliances
+   */
+  async getPowerDistribution(
+    allianceTags: string[],
+    snapshotId: string
+  ): Promise<PowerDistributionMetrics> {
+    this.validateRequired({ allianceTags, snapshotId }, ['allianceTags', 'snapshotId']);
+
+    return this.executeDbOperation(
+      async () => {
+        const snapshots = await prisma.playerSnapshot.findMany({
+          where: {
+            snapshotId,
+            allianceTag: { in: allianceTags }
+          },
+          include: { player: true }
+        });
+
+        // Define power brackets
+        const brackets = [
+          { bracket: '<5M', range: { min: 0, max: 5000000 } },
+          { bracket: '5-10M', range: { min: 5000000, max: 10000000 } },
+          { bracket: '10-20M', range: { min: 10000000, max: 20000000 } },
+          { bracket: '20-50M', range: { min: 20000000, max: 50000000 } },
+          { bracket: '>50M', range: { min: 50000000, max: null } }
+        ];
+
+        // Categorize players into brackets
+        const bracketData: PowerDistributionBracket[] = brackets.map(b => ({
+          ...b,
+          count: 0,
+          percentage: 0,
+          players: []
+        }));
+
+        const allPlayers: Array<{ playerId: string; name: string; alliance: string; power: number }> = [];
+        let totalBuildingPower = 0;
+        let totalHeroPower = 0;
+        let totalLegionPower = 0;
+        let totalTechPower = 0;
+
+        snapshots.forEach(snapshot => {
+          const power = this.parseNumericValue(snapshot.currentPower);
+          const playerData = {
+            playerId: snapshot.playerId,
+            name: snapshot.name,
+            alliance: snapshot.allianceTag || 'None',
+            power
+          };
+          
+          allPlayers.push(playerData);
+
+          // Add to appropriate bracket
+          for (const bracket of bracketData) {
+            if (bracket.range.max === null && power >= bracket.range.min) {
+              bracket.count++;
+              bracket.players.push({ playerId: playerData.playerId, name: playerData.name, power });
+              break;
+            } else if (bracket.range.max !== null && power >= bracket.range.min && power < bracket.range.max) {
+              bracket.count++;
+              bracket.players.push({ playerId: playerData.playerId, name: playerData.name, power });
+              break;
+            }
+          }
+
+          // Accumulate power composition
+          totalBuildingPower += this.parseNumericValue(snapshot.buildingPower);
+          totalHeroPower += this.parseNumericValue(snapshot.heroPower);
+          totalLegionPower += this.parseNumericValue(snapshot.legionPower);
+          totalTechPower += this.parseNumericValue(snapshot.techPower);
+        });
+
+        // Calculate percentages for brackets
+        const totalPlayers = allPlayers.length;
+        bracketData.forEach(bracket => {
+          bracket.percentage = totalPlayers > 0 ? (bracket.count / totalPlayers) * 100 : 0;
+        });
+
+        // Sort players by power to find bottom 10%
+        allPlayers.sort((a, b) => a.power - b.power);
+        const bottom10Count = Math.ceil(totalPlayers * 0.1);
+        const bottom10Percent = allPlayers.slice(0, bottom10Count);
+
+        // Calculate power composition percentages
+        const totalCompositionPower = totalBuildingPower + totalHeroPower + totalLegionPower + totalTechPower;
+        const powerComposition = {
+          building: totalBuildingPower,
+          hero: totalHeroPower,
+          legion: totalLegionPower,
+          tech: totalTechPower,
+          buildingPercentage: totalCompositionPower > 0 ? (totalBuildingPower / totalCompositionPower) * 100 : 0,
+          heroPercentage: totalCompositionPower > 0 ? (totalHeroPower / totalCompositionPower) * 100 : 0,
+          legionPercentage: totalCompositionPower > 0 ? (totalLegionPower / totalCompositionPower) * 100 : 0,
+          techPercentage: totalCompositionPower > 0 ? (totalTechPower / totalCompositionPower) * 100 : 0
+        };
+
+        return {
+          brackets: bracketData,
+          bottom10Percent,
+          powerComposition
+        };
+      },
+      'getPowerDistribution',
+      { allianceCount: allianceTags.length, snapshotId }
+    );
+  }
+
+  /**
+   * Detect inactive members by comparing snapshots
+   */
+  async detectInactiveMembers(
+    currentSnapshotId: string,
+    previousSnapshotId: string
+  ): Promise<InactiveMember[]> {
+    this.validateRequired({ currentSnapshotId, previousSnapshotId }, ['currentSnapshotId', 'previousSnapshotId']);
+
+    return this.executeDbOperation(
+      async () => {
+        // Get current and previous snapshots
+        const [currentSnapshots, previousSnapshots] = await Promise.all([
+          prisma.playerSnapshot.findMany({
+            where: { snapshotId: currentSnapshotId },
+            include: { player: true, snapshot: true }
+          }),
+          prisma.playerSnapshot.findMany({
+            where: { snapshotId: previousSnapshotId },
+            include: { player: true, snapshot: true }
+          })
+        ]);
+
+        // Create maps for easy lookup
+        const previousMap = new Map(
+          previousSnapshots.map(s => [s.playerId, s])
+        );
+
+        const inactiveMembers: InactiveMember[] = [];
+
+        currentSnapshots.forEach(current => {
+          const previous = previousMap.get(current.playerId);
+          if (!previous) return; // Skip if no previous data
+
+          const currentPower = this.parseNumericValue(current.currentPower);
+          const previousPower = this.parseNumericValue(previous.currentPower);
+          const powerGrowth = currentPower - previousPower;
+
+          const currentMerits = this.parseNumericValue(current.merits);
+          const previousMerits = this.parseNumericValue(previous.merits);
+          const meritGrowth = currentMerits - previousMerits;
+
+          const currentKills = this.parseNumericValue(current.unitsKilled);
+          const previousKills = this.parseNumericValue(previous.unitsKilled);
+          const killsGrowth = currentKills - previousKills;
+
+          const timeDiff = new Date(current.snapshot.timestamp).getTime() -
+                          new Date(previous.snapshot.timestamp).getTime();
+          const daysSinceLastSnapshot = timeDiff / (1000 * 60 * 60 * 24);
+
+          const inactivityReasons: string[] = [];
+          let severityLevel: InactiveMember['severityLevel'] = 'low';
+
+          // Check for inactivity indicators
+          if (powerGrowth <= 0) {
+            inactivityReasons.push('No power growth');
+            severityLevel = 'medium';
+          }
+
+          if (meritGrowth < 10000) {
+            inactivityReasons.push(`Low merit accumulation: ${formatNumber(meritGrowth)}`);
+            if (meritGrowth < 1000) {
+              severityLevel = severityLevel === 'medium' ? 'high' : 'medium';
+            }
+          }
+
+          if (killsGrowth < 10000) {
+            inactivityReasons.push(`Low combat activity: ${formatNumber(killsGrowth)} kills`);
+            if (killsGrowth === 0) {
+              severityLevel = severityLevel === 'high' ? 'critical' :
+                             severityLevel === 'medium' ? 'high' : 'medium';
+            }
+          }
+
+          // Only add if there are inactivity indicators
+          if (inactivityReasons.length > 0) {
+            inactiveMembers.push({
+              playerId: current.playerId,
+              name: current.name,
+              alliance: current.allianceTag || 'None',
+              currentPower,
+              previousPower,
+              powerGrowth,
+              merits: currentMerits,
+              meritGrowth,
+              killsGrowth,
+              severityLevel,
+              inactivityReasons,
+              daysSinceLastSnapshot: Math.round(daysSinceLastSnapshot)
+            });
+          }
+        });
+
+        // Sort by severity level (critical first)
+        const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        inactiveMembers.sort((a, b) =>
+          severityOrder[a.severityLevel] - severityOrder[b.severityLevel]
+        );
+
+        return inactiveMembers;
+      },
+      'detectInactiveMembers',
+      { currentSnapshotId, previousSnapshotId }
     );
   }
 }

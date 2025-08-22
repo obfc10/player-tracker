@@ -4,7 +4,8 @@ import { ExcelProcessingService, ProcessedExcelData } from './ExcelProcessingSer
 import { ChangeDetectionService, ChangeDetectionResult } from './ChangeDetectionService';
 import { ProcessedSnapshot } from '@/types/snapshot';
 import { ExcelPlayerData } from '@/types/player';
-import { getConfig } from '@/lib/config';
+import { getDatabaseConfiguration, getFeaturesConfiguration } from '@/config';
+import { prisma } from '@/lib/db';
 
 export interface UploadProcessingResult {
   success: true;
@@ -17,7 +18,8 @@ export class PlayerService extends BaseService {
   private snapshotRepository: SnapshotRepository;
   private excelService: ExcelProcessingService;
   private changeDetectionService: ChangeDetectionService;
-  private config = getConfig('database');
+  private dbConfig = getDatabaseConfiguration();
+  private featuresConfig = getFeaturesConfiguration();
 
   constructor() {
     super();
@@ -93,7 +95,7 @@ export class PlayerService extends BaseService {
   }
 
   private async processPlayersInBatches(players: ExcelPlayerData[], timestamp: Date): Promise<void> {
-    const batchSize = this.config.batchSize;
+    const batchSize = this.dbConfig.batchSize;
     this.logInfo('processPlayersInBatches', `Processing ${players.length} players in batches of ${batchSize}`);
     
     for (let i = 0; i < players.length; i += batchSize) {
@@ -125,16 +127,25 @@ export class PlayerService extends BaseService {
     this.logInfo('verifyPlayerNameConsistency', 'Verifying player currentName consistency');
     let nameFixCount = 0;
     
+    // FIXED N+1 QUERY ISSUE: Batch fetch all players instead of individual queries
+    const playerIds = players.map(p => p.lordId);
+    const existingPlayers = await this.playerRepository.findManyByIds(playerIds);
+    const playerMap = new Map(existingPlayers.map(p => [p.lordId, p]));
+    
+    // Now process updates in batch
+    const updatesNeeded: Array<{ lordId: string; currentName: string }> = [];
+    
     for (const data of players) {
       try {
-        const player = await this.playerRepository.findByLordId(data.lordId);
+        const player = playerMap.get(data.lordId);
         
         if (player && player.currentName !== data.name) {
           this.logInfo('verifyPlayerNameConsistency', 
             `Fixing player ${data.lordId} name: "${player.currentName}" -> "${data.name}"`
           );
           
-          await this.playerRepository.upsert(data.lordId, {
+          updatesNeeded.push({
+            lordId: data.lordId,
             currentName: data.name
           });
           nameFixCount++;
@@ -144,6 +155,11 @@ export class PlayerService extends BaseService {
           `Error verifying player ${data.lordId}`, error
         );
       }
+    }
+    
+    // Batch process the updates
+    if (updatesNeeded.length > 0) {
+      await this.playerRepository.batchUpsert(updatesNeeded);
     }
     
     this.logInfo('verifyPlayerNameConsistency', `Fixed ${nameFixCount} player name inconsistencies`);
@@ -171,7 +187,7 @@ export class PlayerService extends BaseService {
         { includeLeftRealm }
       );
 
-      // Transform to match expected format
+      // Transform to match expected format - this transformation should be moved to a mapper
       const transformedPlayers = playerSnapshots.map((snapshot: any) => ({
         lordId: snapshot.playerId,
         name: snapshot.name,
@@ -216,6 +232,30 @@ export class PlayerService extends BaseService {
       return { players: transformedPlayers };
     } catch (error) {
       this.handleError(error, 'getAllPlayers');
+    }
+  }
+
+  async getLatestPlayerSnapshots(playerIds?: string[], beforeTimestamp?: Date) {
+    try {
+      // Business logic: find the latest snapshot before a given timestamp
+      const latestSnapshot = beforeTimestamp 
+        ? await prisma.snapshot.findFirst({ 
+            where: { timestamp: { lt: beforeTimestamp } },
+            orderBy: { timestamp: 'desc' }
+          })
+        : await this.snapshotRepository.findLatest();
+
+      if (!latestSnapshot) {
+        return [];
+      }
+
+      // Use repository for pure data access
+      return await this.playerRepository.getPlayerSnapshotsBySnapshotId(
+        latestSnapshot.id, 
+        playerIds
+      );
+    } catch (error) {
+      this.handleError(error, 'getLatestPlayerSnapshots');
     }
   }
 }

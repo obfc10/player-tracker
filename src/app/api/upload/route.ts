@@ -5,6 +5,7 @@ import { requireAdminAuth } from '@/lib/api-utils';
 import { ValidationError } from '@/types/api';
 import { apiErrorBoundary, logRequest, logResponse } from '@/lib/error-handler';
 import { logInfo, logError, logWarn } from '@/lib/logger';
+import { cacheService, CacheTags } from '@/services/CacheService';
 
 // Force dynamic rendering
 export const runtime = 'nodejs';
@@ -81,6 +82,18 @@ async function uploadHandler(request: NextRequest) {
         rowsProcessed: result.snapshot.playersProcessed
       }
     });
+
+    // Invalidate all cache entries since new data has been uploaded
+    const invalidatedCount = cacheService.invalidateByTags([
+      CacheTags.SNAPSHOTS,
+      CacheTags.PLAYERS,
+      CacheTags.LEADERBOARD,
+      CacheTags.NAME_CHANGES,
+      CacheTags.ALLIANCE_CHANGES,
+      CacheTags.CHANGES
+    ]);
+
+    logInfo('Upload', `Invalidated ${invalidatedCount} cache entries due to new data upload`);
 
     const duration = Date.now() - startTime;
     logResponse('POST', '/api/upload', 200, duration);

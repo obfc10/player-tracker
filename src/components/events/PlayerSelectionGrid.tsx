@@ -59,7 +59,7 @@ export function PlayerSelectionGrid({
       const response = await fetch('/api/players?includeLeftRealm=true');
       if (!response.ok) throw new Error('Failed to fetch players');
       const data = await response.json();
-      setPlayers(data.players || []);
+      setPlayers(data.data?.players || []);
     } catch (err) {
       setError('Failed to load players');
       console.error('Error fetching players:', err);

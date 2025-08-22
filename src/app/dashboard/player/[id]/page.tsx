@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import { PlayerCard } from '@/components/PlayerCard';
+import { PlayerDetailCard } from '@/components/PlayerCard';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function PlayerPage({ params }: PlayerPageProps) {
 
       {/* Player Card Content */}
       <div className="p-6">
-        <PlayerCard lordId={id} />
+        <PlayerDetailCard lordId={id} />
       </div>
     </div>
   );

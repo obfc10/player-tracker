@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSeason } from '@/contexts/SeasonContext';
-// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,9 @@ import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AllianceLeaderboard } from '@/components/leaderboard/AllianceLeaderboard';
-import { PlayerEventHistory } from '@/components/row/PlayerEventHistory';
+import { AllianceComparisonView } from '@/components/leaderboard/AllianceComparisonView';
 import { ALLIANCE_FILTER_OPTIONS, sortAlliancesByPriority } from '@/lib/alliance-config';
-import { Trophy, Shield, Users, Crown, RefreshCw } from 'lucide-react';
+import { Trophy, Shield, Users, Crown, RefreshCw, Swords } from 'lucide-react';
 
 interface Player {
   rank: number;
@@ -61,10 +60,21 @@ interface Alliance {
 }
 
 interface LeaderboardData {
-  players: Player[];
-  totalPlayers: number;
-  currentPage: number;
-  totalPages: number;
+  data: Player[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  performance: {
+    itemCount: number;
+    responseSize: number;
+    optimized: boolean;
+    queryTime: number;
+  };
   sortBy: string;
   order: string;
   alliance: string;
@@ -95,9 +105,10 @@ export default function LeaderboardPage() {
   const { selectedSeasonMode, selectedSeasonId } = useSeason();
   const [playerData, setPlayerData] = useState<LeaderboardData | null>(null);
   const [allianceData, setAllianceData] = useState<AllianceLeaderboardData | null>(null);
+  const [comparisonData, setComparisonData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('players');
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'individual' | 'comparison'>('individual');
   
   // Player leaderboard state
   const [playerSortBy, setPlayerSortBy] = useState('currentPower');
@@ -111,11 +122,16 @@ export default function LeaderboardPage() {
 
   useEffect(() => {
     if (activeTab === 'players') {
-      fetchPlayerLeaderboard();
+      if (viewMode === 'comparison') {
+        fetchComparisonData();
+      } else {
+        fetchPlayerLeaderboard();
+      }
     } else {
       fetchAllianceLeaderboard();
     }
-  }, [activeTab, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder, selectedSeasonMode, selectedSeasonId]);
+  }, [activeTab, viewMode, selectedSeasonMode, selectedSeasonId, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder]);
+
 
   const fetchPlayerLeaderboard = async () => {
     setLoading(true);
@@ -164,6 +180,26 @@ export default function LeaderboardPage() {
     }
   };
 
+  const fetchComparisonData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        seasonMode: selectedSeasonMode,
+        ...(selectedSeasonId && { seasonId: selectedSeasonId })
+      });
+
+      const response = await fetch(`/api/leaderboard/alliance-comparison?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        setComparisonData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching comparison data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlayerSort = (metric: string) => {
     if (playerSortBy === metric) {
       setPlayerOrder(playerOrder === 'asc' ? 'desc' : 'asc');
@@ -193,8 +229,8 @@ export default function LeaderboardPage() {
   };
 
   const handlePlayerClick = (player: Player) => {
-    // Open ROW event history modal
-    setSelectedPlayerId(player.lordId);
+    // Navigate to player detail page
+    router.push(`/dashboard/player/${player.lordId}`);
   };
 
   const handleAllianceClick = (alliance: Alliance) => {
@@ -215,7 +251,11 @@ export default function LeaderboardPage() {
 
   const refresh = () => {
     if (activeTab === 'players') {
-      fetchPlayerLeaderboard();
+      if (viewMode === 'comparison') {
+        fetchComparisonData();
+      } else {
+        fetchPlayerLeaderboard();
+      }
     } else {
       fetchAllianceLeaderboard();
     }
@@ -246,9 +286,9 @@ export default function LeaderboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {activeTab === 'players' && playerData?.players && (
+            {activeTab === 'players' && playerData?.data && (
               <ExportButton
-                data={playerData.players.map((player, index) => ({
+                data={playerData.data.map((player, index) => ({
                   rank: player.rank,
                   name: player.name,
                   alliance: player.allianceTag || '',
@@ -260,7 +300,7 @@ export default function LeaderboardPage() {
                 exportConfig={ExportConfigs.leaderboard}
                 filename={`player_leaderboard_${new Date().toISOString().split('T')[0]}`}
                 title="Kingdom 671 - Player Leaderboard"
-                subtitle={`Top ${playerData.players.length} players | Export generated on ${new Date().toLocaleDateString()}`}
+                subtitle={`Top ${playerData.data.length} players | Export generated on ${new Date().toLocaleDateString()}`}
                 variant="outline"
                 size="sm"
               />
@@ -322,7 +362,7 @@ export default function LeaderboardPage() {
               <div>
                 <p className="text-gray-400 text-sm font-medium">Total Players</p>
                 <p className="text-2xl font-bold text-white">
-                  {playerData?.totalPlayers.toLocaleString() || '-'}
+                  {playerData?.pagination?.totalItems?.toLocaleString() || '-'}
                 </p>
               </div>
               <Users className="w-8 h-8 text-purple-500" />
@@ -350,8 +390,8 @@ export default function LeaderboardPage() {
               <div>
                 <p className="text-gray-400 text-sm font-medium">Top Player Power</p>
                 <p className="text-2xl font-bold text-white">
-                  {playerData?.players[0] ? 
-                    `${(playerData.players[0].currentPower / 1000000).toFixed(1)}M` : 
+                  {playerData?.data[0] ? 
+                    `${(playerData.data[0].currentPower / 1000000).toFixed(1)}M` : 
                     '-'
                   }
                 </p>
@@ -361,6 +401,28 @@ export default function LeaderboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* View Mode Toggle */}
+      {activeTab === 'players' && (
+        <div className="flex items-center justify-center gap-4 mb-6">
+          <Button
+            variant={viewMode === 'individual' ? 'default' : 'outline'}
+            onClick={() => setViewMode('individual')}
+            className="flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Individual Rankings
+          </Button>
+          <Button
+            variant={viewMode === 'comparison' ? 'default' : 'outline'}
+            onClick={() => setViewMode('comparison')}
+            className="flex items-center gap-2"
+          >
+            <Swords className="w-4 h-4" />
+            Alliance Comparison
+          </Button>
+        </div>
+      )}
 
       {/* Leaderboard Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -377,14 +439,22 @@ export default function LeaderboardPage() {
 
         {/* Player Leaderboard */}
         <TabsContent value="players">
-          <LeaderboardTable
-            data={playerData}
-            loading={loading}
-            onSort={handlePlayerSort}
-            onAllianceFilter={handleAllianceFilter}
-            onPageChange={handlePageChange}
-            onPlayerClick={handlePlayerClick}
-          />
+          {viewMode === 'individual' ? (
+            <LeaderboardTable
+              data={playerData}
+              loading={loading}
+              onSort={handlePlayerSort}
+              onAllianceFilter={handleAllianceFilter}
+              onPageChange={handlePageChange}
+              onPlayerClick={handlePlayerClick}
+            />
+          ) : (
+            <AllianceComparisonView
+              data={comparisonData}
+              loading={loading}
+              onRefresh={refresh}
+            />
+          )}
         </TabsContent>
 
         {/* Alliance Leaderboard */}
@@ -427,13 +497,6 @@ export default function LeaderboardPage() {
         </CardContent>
       </Card>
 
-      {/* Player Event History Modal */}
-      {selectedPlayerId && (
-        <PlayerEventHistory
-          playerId={selectedPlayerId}
-          onClose={() => setSelectedPlayerId(null)}
-        />
-      )}
     </div>
   );
 }

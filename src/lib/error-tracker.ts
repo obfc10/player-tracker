@@ -184,13 +184,6 @@ class ErrorTracker {
   clearErrors(): void {
     this.errors = [];
   }
-
-  updateMaxErrors(maxErrors: number): void {
-    this.maxErrors = maxErrors;
-    if (this.errors.length > maxErrors) {
-      this.errors = this.errors.slice(-maxErrors);
-    }
-  }
 }
 
 export const errorTracker = ErrorTracker.getInstance();

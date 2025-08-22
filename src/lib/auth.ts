@@ -3,9 +3,9 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { logAuthEvent, logError, logWarn } from './logger';
-import { getConfig } from './config';
+import { getAuthConfiguration } from '../config';
 
-const authConfig = getConfig('auth');
+const authConfig = getAuthConfiguration();
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -103,5 +103,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
-  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-build'
+  secret: authConfig.secretKey
 };

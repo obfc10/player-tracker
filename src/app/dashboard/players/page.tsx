@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
-import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
+import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, getManagedAllianceTags, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
 
 interface PlayerData {
   lordId: string;
@@ -112,7 +112,7 @@ export default function PlayersPage() {
     try {
       const response = await fetch('/api/players');
       const data = await response.json();
-      setPlayers(data.players || []);
+      setPlayers(data.data?.players || []);
     } catch (error) {
       console.error('Error fetching players:', error);
       setPlayers([]);
@@ -134,7 +134,18 @@ export default function PlayersPage() {
 
     // Apply alliance filter
     if (selectedAlliance !== 'all') {
-      filtered = filtered.filter(player => player.allianceTag === selectedAlliance);
+      if (selectedAlliance === 'managed') {
+        // Show only managed alliances (PLAC, FLAs, Plaf)
+        const managedTags = getManagedAllianceTags();
+        filtered = filtered.filter(player => managedTags.includes(player.allianceTag));
+      } else if (selectedAlliance === 'others') {
+        // Show only non-managed alliances
+        const managedTags = getManagedAllianceTags();
+        filtered = filtered.filter(player => player.allianceTag && !managedTags.includes(player.allianceTag));
+      } else {
+        // Show specific alliance
+        filtered = filtered.filter(player => player.allianceTag === selectedAlliance);
+      }
     }
 
     // Apply sorting

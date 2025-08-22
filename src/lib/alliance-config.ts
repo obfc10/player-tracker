@@ -15,14 +15,14 @@ export const MANAGED_ALLIANCES: ManagedAlliance[] = [
     id: '340984',
     priority: 1,
     name: 'PLAC',
-    color: 'text-yellow-400 bg-yellow-400/20 border-yellow-400/30'
+    color: 'text-blue-400 bg-blue-400/20 border-blue-400/30'
   },
   {
     tag: 'FLAs',
-    id: '341001', 
+    id: '341001',
     priority: 2,
     name: 'FLAs',
-    color: 'text-orange-400 bg-orange-400/20 border-orange-400/30'
+    color: 'text-green-400 bg-green-400/20 border-green-400/30'
   },
   {
     tag: 'Plaf',

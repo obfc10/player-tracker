@@ -18,7 +18,6 @@ model User {
   status                   UserStatus           @default(PENDING)
   eventsCreated            Event[]              @relation("EventCreatedBy")
   eventParticipationsAdded EventParticipation[] @relation("EventParticipationAddedBy")
-  gameEventsCreated        GameEvent[]          @relation("GameEventCreatedBy")
   uploads                  Upload[]
 }
 
@@ -48,9 +47,7 @@ model Player {
   allianceHistory     AllianceChange[]
   eventParticipations EventParticipation[]
   nameHistory         NameChange[]
-  playerEventRoles    PlayerEventRole[]
   snapshots           PlayerSnapshot[]
-  teamRoster          TeamRoster[]
 
   @@index([currentName])
   @@index([hasLeftRealm])
@@ -67,6 +64,9 @@ model NameChange {
 
   @@index([playerId])
   @@index([detectedAt])
+  @@index([detectedAt, playerId])
+  @@index([oldName])
+  @@index([newName])
 }
 
 model AllianceChange {
@@ -81,6 +81,9 @@ model AllianceChange {
 
   @@index([playerId])
   @@index([detectedAt])
+  @@index([detectedAt, playerId])
+  @@index([oldAlliance])
+  @@index([newAlliance])
 }
 
 model PlayerSnapshot {
@@ -131,6 +134,16 @@ model PlayerSnapshot {
   @@unique([playerId, snapshotId])
   @@index([snapshotId])
   @@index([playerId])
+  @@index([snapshotId, allianceTag])
+  @@index([snapshotId, currentPower])
+  @@index([snapshotId, power])
+  @@index([snapshotId, merits])
+  @@index([snapshotId, unitsKilled])
+  @@index([snapshotId, victories])
+  @@index([snapshotId, cityLevel])
+  @@index([snapshotId, division])
+  @@index([allianceTag])
+  @@index([name])
 }
 
 model Snapshot {
@@ -222,103 +235,10 @@ model EventParticipation {
   @@index([addedById])
 }
 
-model EventRole {
-  id          String            @id @default(cuid())
-  name        String            @unique
-  description String?
-  isActive    Boolean           @default(true)
-  sortOrder   Int               @default(0)
-  color       String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  playerRoles PlayerEventRole[]
 
-  @@index([isActive])
-  @@index([sortOrder])
-}
 
-model PersistentTeam {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  description String?
-  color       String?
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  roster      TeamRoster[]
-  gameEvents  GameEvent[]  @relation("GameEventToPersistentTeam")
 
-  @@index([isActive])
-  @@index([name])
-}
 
-model TeamRoster {
-  id         String         @id @default(cuid())
-  teamId     String
-  playerId   String
-  position   RosterPosition @default(STARTER)
-  dateJoined DateTime       @default(now())
-  dateLeft   DateTime?
-  isActive   Boolean        @default(true)
-  notes      String?
-  player     Player         @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  team       PersistentTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
-
-  @@unique([teamId, playerId])
-  @@index([teamId])
-  @@index([playerId])
-  @@index([isActive])
-  @@index([position])
-}
-
-model GameEvent {
-  id          String            @id @default(cuid())
-  name        String
-  description String?
-  eventDate   DateTime
-  status      EventStatus       @default(DRAFT)
-  eventType   String            @default("ROW")
-  maxTeams    Int               @default(3)
-  outcome     String?
-  notes       String?
-  createdById String
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  createdBy   User              @relation("GameEventCreatedBy", fields: [createdById], references: [id])
-  playerRoles PlayerEventRole[]
-  teams       PersistentTeam[]  @relation("GameEventToPersistentTeam")
-
-  @@index([eventDate])
-  @@index([status])
-  @@index([eventType])
-  @@index([createdById])
-}
-
-model PlayerEventRole {
-  id                String    @id @default(cuid())
-  gameEventId       String
-  playerId          String
-  roleId            String
-  garrisonPoints    Int       @default(0)
-  seedPoints        Int       @default(0)
-  killPoints        Int       @default(0)
-  totalPoints       Int       @default(0)
-  performanceRating String?
-  mvpVotes          Int       @default(0)
-  notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  gameEvent         GameEvent @relation(fields: [gameEventId], references: [id], onDelete: Cascade)
-  player            Player    @relation(fields: [playerId], references: [lordId], onDelete: Cascade)
-  role              EventRole @relation(fields: [roleId], references: [id])
-
-  @@unique([gameEventId, playerId, roleId])
-  @@index([gameEventId])
-  @@index([playerId])
-  @@index([roleId])
-  @@index([totalPoints])
-  @@index([killPoints])
-}
 
 enum Role {
   ADMIN
@@ -338,14 +258,4 @@ enum UploadStatus {
   FAILED
 }
 
-enum EventStatus {
-  DRAFT
-  ACTIVE
-  SCORING
-  FINALIZED
-}
 
-enum RosterPosition {
-  STARTER
-  SUBSTITUTE
-}

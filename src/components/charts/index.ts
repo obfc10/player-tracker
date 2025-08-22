@@ -1,3 +1,10 @@
 export { MeritTrendChart } from './MeritTrendChart';
 export { AlliancePerformanceChart } from './AlliancePerformanceChart';
 export { PlayerProgressChart } from './PlayerProgressChart';
+export { AllianceChart } from './AllianceChart';
+export { PowerDistributionChart } from './PowerDistributionChart';
+export { ProgressChart } from './ProgressChart';
+export { MeritDistributionChart } from './MeritDistributionChart';
+export { MeritEfficiencyChart } from './MeritEfficiencyChart';
+export { TopPerformersChart } from './TopPerformersChart';
+export { CombatEfficiencyMatrix } from './CombatEfficiencyMatrix';

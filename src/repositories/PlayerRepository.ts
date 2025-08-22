@@ -133,26 +133,76 @@ export class PlayerRepository {
     }
   }
 
-  async getLatestSnapshots(playerIds: string[], beforeTimestamp?: Date): Promise<PlayerSnapshot[]> {
+  async getPlayerSnapshotsBySnapshotId(snapshotId: string, playerIds?: string[]): Promise<PlayerSnapshot[]> {
     try {
-      const latestSnapshotQuery = await prisma.snapshot.findFirst({
-        where: beforeTimestamp ? { timestamp: { lt: beforeTimestamp } } : undefined,
-        orderBy: { timestamp: 'desc' }
-      });
-
-      if (!latestSnapshotQuery) {
-        return [];
+      const whereClause: any = { snapshotId };
+      if (playerIds && playerIds.length > 0) {
+        whereClause.playerId = { in: playerIds };
       }
 
       return await prisma.playerSnapshot.findMany({
-        where: {
-          playerId: { in: playerIds },
-          snapshotId: latestSnapshotQuery.id
-        },
+        where: whereClause,
         include: { snapshot: true }
       });
     } catch (error) {
-      throw new DatabaseError(`Failed to get latest snapshots`, error);
+      throw new DatabaseError(`Failed to get player snapshots by snapshot ID`, error);
+    }
+  }
+
+  async findManyByIds(lordIds: string[]): Promise<Player[]> {
+    try {
+      return await prisma.player.findMany({
+        where: {
+          lordId: { in: lordIds }
+        }
+      });
+    } catch (error) {
+      throw new DatabaseError(`Failed to find players by IDs`, error);
+    }
+  }
+
+  async findAllWithBasicInfo(filters: {
+    includeLeftRealm?: boolean;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<Player[]> {
+    try {
+      const { includeLeftRealm = false, limit, offset } = filters;
+      
+      const whereClause: any = {};
+      if (!includeLeftRealm) {
+        whereClause.hasLeftRealm = false;
+      }
+
+      return await prisma.player.findMany({
+        where: whereClause,
+        orderBy: { lastSeenAt: 'desc' },
+        ...(limit ? { take: limit } : {}),
+        ...(offset ? { skip: offset } : {})
+      });
+    } catch (error) {
+      throw new DatabaseError(`Failed to find players with basic info`, error);
+    }
+  }
+
+  async batchUpsert(updates: Array<{ lordId: string; currentName: string }>): Promise<void> {
+    try {
+      // Use a transaction for batch updates to ensure consistency
+      await prisma.$transaction(
+        updates.map(update => 
+          prisma.player.upsert({
+            where: { lordId: update.lordId },
+            update: { currentName: update.currentName },
+            create: {
+              lordId: update.lordId,
+              currentName: update.currentName,
+              hasLeftRealm: false
+            }
+          })
+        )
+      );
+    } catch (error) {
+      throw new DatabaseError(`Failed to batch upsert players`, error);
     }
   }
 }

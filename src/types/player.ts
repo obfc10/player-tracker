@@ -81,7 +81,7 @@ export interface AllianceChange {
 export interface PlayerWithHistory extends Player {
   nameHistory?: NameChange[];
   allianceHistory?: AllianceChange[];
-  snapshots?: PlayerSnapshot[];
+  snapshots?: (PlayerSnapshot & { snapshot: { timestamp: Date; filename: string; kingdom: string } })[];
 }
 
 // Excel processing types

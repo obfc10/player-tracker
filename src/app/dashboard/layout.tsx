@@ -6,11 +6,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { SeasonProvider } from '@/contexts/SeasonContext';
-import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
-  Trophy, 
+import {
+  LayoutDashboard,
+  Users,
+  TrendingUp,
+  Trophy,
   BarChart3,
   Upload,
   LogOut,
@@ -19,10 +19,12 @@ import {
   GitBranch,
   UserCheck,
   UserX,
+  UserPlus,
   Award,
   Calendar,
-  Sword,
-  Shield
+  Shield,
+  AlertTriangle,
+  Target
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -45,15 +47,17 @@ export default function DashboardLayout({
 
   const navigation = [
     { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
+    { name: 'Alliance Dashboard', href: '/dashboard/alliance', icon: Shield },
     { name: 'Players', href: '/dashboard/players', icon: Users },
     { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
+    { name: 'Combat Efficiency', href: '/dashboard/combat-efficiency', icon: Target },
     { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
-    { name: 'Roots of War', href: '/dashboard/row', icon: Sword },
-    { name: 'Behemoth', href: '/dashboard/behemoth', icon: Shield },
+    { name: 'Worst Performers', href: '/dashboard/worst-performers', icon: AlertTriangle },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
     { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
+    { name: 'Joined Realm', href: '/dashboard/joined-realm', icon: UserPlus },
     { name: 'Left Realm', href: '/dashboard/left-realm', icon: UserX }
   ];
 
@@ -199,12 +203,13 @@ export default function DashboardLayout({
               <h2 className="text-lg font-semibold text-white">
                 {(() => {
                   if (pathname === '/dashboard/overview') return 'Kingdom Overview';
+                  if (pathname === '/dashboard/alliance') return 'Alliance Dashboard';
                   if (pathname === '/dashboard/players') return 'Player Database';
                   if (pathname === '/dashboard/progress') return 'Progress Tracking';
                   if (pathname === '/dashboard/leaderboard') return 'Leaderboards';
+                  if (pathname === '/dashboard/combat-efficiency') return 'Combat Efficiency Matrix';
                   if (pathname === '/dashboard/merits') return 'Merit Analytics';
-                  if (pathname === '/dashboard/row') return 'Roots of War Management';
-                  if (pathname === '/dashboard/behemoth') return 'Behemoth Tracking';
+                  if (pathname === '/dashboard/worst-performers') return 'Worst Performers Tracker';
                   if (pathname === '/dashboard/changes') return 'Change Analysis';
                   if (pathname === '/dashboard/alliance-moves') return 'Alliance Moves';
                   if (pathname === '/dashboard/name-changes') return 'Name Changes';

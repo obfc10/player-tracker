@@ -46,10 +46,21 @@ interface Player {
 }
 
 interface LeaderboardData {
-  players: Player[];
-  totalPlayers: number;
-  currentPage: number;
-  totalPages: number;
+  data: Player[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+  performance: {
+    itemCount: number;
+    responseSize: number;
+    optimized: boolean;
+    queryTime: number;
+  };
   sortBy: string;
   order: string;
   alliance: string;
@@ -77,6 +88,7 @@ const columns = [
   { key: 'allianceTag', label: 'Alliance', icon: Shield, sortable: false },
   { key: 'currentPower', label: 'Power', icon: Zap, sortable: true },
   { key: 'merits', label: 'Merits', icon: Trophy, sortable: true },
+  { key: 'meritEfficiency', label: 'Merit Eff.', icon: Trophy, sortable: true },
   { key: 'unitsKilled', label: 'Kills', icon: Sword, sortable: true },
   { key: 'killDeathRatio', label: 'K/D', icon: Sword, sortable: true },
   { key: 'victories', label: 'Wins', icon: Crown, sortable: true },
@@ -84,15 +96,15 @@ const columns = [
   { key: 'cityLevel', label: 'Level', icon: Users, sortable: true },
 ];
 
-export function LeaderboardTable({ 
-  data, 
-  loading, 
-  onSort, 
-  onAllianceFilter, 
-  onPageChange, 
-  onPlayerClick 
+export function LeaderboardTable({
+  data,
+  loading,
+  onSort,
+  onAllianceFilter,
+  onPageChange,
+  onPlayerClick
 }: LeaderboardTableProps) {
-  const [selectedColumns, setSelectedColumns] = useState(new Set(['rank', 'name', 'allianceTag', 'currentPower', 'merits', 'unitsKilled']));
+  const [selectedColumns, setSelectedColumns] = useState(new Set(['rank', 'name', 'allianceTag', 'currentPower', 'merits', 'meritEfficiency']));
 
   const formatNumber = (num: number) => {
     if (num >= 1000000000) {
@@ -125,6 +137,30 @@ export function LeaderboardTable({
     return 'bg-gray-600/20 text-gray-400 border-gray-600/30';
   };
 
+  const getPerformanceTierColor = (player: any) => {
+    const power = player.currentPower || 0;
+    const merits = player.merits || 0;
+    const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+    
+    // Performance tiers based on merit efficiency
+    if (meritEfficiency >= 1.0) return 'text-green-400'; // Top 20%
+    if (meritEfficiency >= 0.5) return 'text-yellow-400'; // Middle 60%
+    return 'text-red-400'; // Bottom 20%
+  };
+
+  const isUnderperformer = (player: any) => {
+    const power = player.currentPower || 0;
+    const merits = player.merits || 0;
+    const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+    return meritEfficiency < 0.5;
+  };
+
+  const calculateMeritEfficiency = (player: any) => {
+    const power = player.currentPower || 0;
+    const merits = player.merits || 0;
+    return power > 0 ? (merits / (power / 1000000)) : 0;
+  };
+
   const toggleColumn = (columnKey: string) => {
     const newSelected = new Set(selectedColumns);
     if (newSelected.has(columnKey)) {
@@ -151,7 +187,7 @@ export function LeaderboardTable({
     );
   }
 
-  if (!data || data.players.length === 0) {
+  if (!data || data.data.length === 0) {
     return (
       <Card className="bg-gray-800 border-gray-700">
         <CardContent className="p-8 text-center text-gray-400">
@@ -228,7 +264,7 @@ export function LeaderboardTable({
           <CardTitle className="text-white flex items-center justify-between">
             <span>Player Rankings</span>
             <span className="text-sm text-gray-400 font-normal">
-              {data.totalPlayers.toLocaleString()} players
+              {data.pagination.totalItems.toLocaleString()} players
             </span>
           </CardTitle>
         </CardHeader>
@@ -242,7 +278,7 @@ export function LeaderboardTable({
                     return (
                       <th
                         key={column.key}
-                        className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider transition-all duration-200 ${
+                        className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${
                           column.sortable ? 'cursor-pointer hover:bg-gray-800' : ''
                         } ${
                           data && data.sortBy === column.key
@@ -262,16 +298,22 @@ export function LeaderboardTable({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {data.players.map(player => (
-                  <tr
-                    key={player.lordId}
-                    onClick={() => onPlayerClick(player)}
-                    className={`cursor-pointer transition-colors hover:bg-gray-700 ${
-                      player.allianceTag && isManagedAlliance(player.allianceTag) 
-                        ? 'ring-1 ring-yellow-400/30 bg-gray-800/50' 
-                        : ''
-                    }`}
-                  >
+                {data.data.map(player => {
+                  const meritEff = calculateMeritEfficiency(player);
+                  const isUnderperf = isUnderperformer(player);
+                  
+                  return (
+                    <tr
+                      key={player.lordId}
+                      onClick={() => onPlayerClick(player)}
+                      className={`cursor-pointer transition-colors hover:bg-gray-700 ${
+                        player.allianceTag && isManagedAlliance(player.allianceTag)
+                          ? 'ring-1 ring-yellow-400/30 bg-gray-800/50'
+                          : ''
+                      } ${
+                        isUnderperf ? 'bg-red-900/20 border-l-4 border-red-500' : ''
+                      }`}
+                    >
                     {visibleColumns.map(column => (
                       <td key={column.key} className="px-4 py-3 text-sm text-gray-300">
                         {column.key === 'rank' && (
@@ -281,7 +323,14 @@ export function LeaderboardTable({
                         )}
                         {column.key === 'name' && (
                           <div>
-                            <p className="text-white font-medium">{player.name}</p>
+                            <p className={`font-medium ${getPerformanceTierColor(player)}`}>
+                              {player.name}
+                              {isUnderperf && (
+                                <span className="ml-2 px-1 py-0.5 text-xs bg-red-500/20 text-red-300 rounded">
+                                  At Risk
+                                </span>
+                              )}
+                            </p>
                             <p className="text-xs text-gray-400">ID: {player.lordId}</p>
                           </div>
                         )}
@@ -304,6 +353,11 @@ export function LeaderboardTable({
                         {(column.key === 'currentPower' || column.key === 'merits' || column.key === 'unitsKilled') && (
                           formatNumber(player[column.key])
                         )}
+                        {column.key === 'meritEfficiency' && (
+                          <span className={getPerformanceTierColor(player)}>
+                            {meritEff.toFixed(2)}
+                          </span>
+                        )}
                         {(column.key === 'killDeathRatio' || column.key === 'winRate') && (
                           <span className={
                             typeof player[column.key] === 'number' && (player[column.key] as number) > 1 ? 'text-green-400' :
@@ -317,8 +371,9 @@ export function LeaderboardTable({
                         )}
                       </td>
                     ))}
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -326,17 +381,17 @@ export function LeaderboardTable({
       </Card>
 
       {/* Pagination */}
-      {data.totalPages > 1 && (
+      {data.pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-400">
-            Page {data.currentPage} of {data.totalPages} • {data.totalPlayers.toLocaleString()} total players
+            Page {data.pagination.currentPage} of {data.pagination.totalPages} • {data.pagination.totalItems.toLocaleString()} total players
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(1)}
-              disabled={data.currentPage === 1}
+              disabled={data.pagination.currentPage === 1}
               className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronsLeft className="w-4 h-4" />
@@ -344,20 +399,20 @@ export function LeaderboardTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(data.currentPage - 1)}
-              disabled={data.currentPage === 1}
+              onClick={() => onPageChange(data.pagination.currentPage - 1)}
+              disabled={data.pagination.currentPage === 1}
               className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <span className="px-3 py-1 bg-purple-600 border border-purple-500 rounded text-sm text-white font-medium shadow-lg">
-              {data.currentPage}
+              {data.pagination.currentPage}
             </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(data.currentPage + 1)}
-              disabled={data.currentPage === data.totalPages}
+              onClick={() => onPageChange(data.pagination.currentPage + 1)}
+              disabled={data.pagination.currentPage === data.pagination.totalPages}
               className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
@@ -365,8 +420,8 @@ export function LeaderboardTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onPageChange(data.totalPages)}
-              disabled={data.currentPage === data.totalPages}
+              onClick={() => onPageChange(data.pagination.totalPages)}
+              disabled={data.pagination.currentPage === data.pagination.totalPages}
               className="bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronsRight className="w-4 h-4" />

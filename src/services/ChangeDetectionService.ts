@@ -26,8 +26,8 @@ export class ChangeDetectionService extends BaseService {
     for (const data of playersData) {
       try {
         // Get the most recent snapshot before this one
-        const lastSnapshots = await this.playerRepository.getLatestSnapshots([data.lordId], timestamp);
-        const lastSnapshot = lastSnapshots[0];
+        const player = await this.playerRepository.findByLordIdWithHistory(data.lordId);
+        const lastSnapshot = player?.snapshots?.[1]; // Get the second most recent snapshot
 
         if (lastSnapshot) {
           // Check for name changes

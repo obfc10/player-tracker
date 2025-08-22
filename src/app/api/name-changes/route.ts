@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { cacheService, CacheKeys, CacheTags } from '@/services/CacheService';
+import { createOptimizedResponse, optimizeForLargeDataset, ResponseTimer } from '@/lib/response-optimization';
 
 // Force dynamic rendering
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const timer = new ResponseTimer();
+  
   try {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -38,35 +42,45 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Get total count for pagination
-    const totalChanges = await prisma.nameChange.count({
-      where: whereClause
-    });
-
-    // Fetch name changes with player data
-    const changes = await prisma.nameChange.findMany({
-      where: whereClause,
-      include: {
-        player: {
-          include: {
-            snapshots: {
-              include: {
-                snapshot: true
-              },
-              orderBy: {
-                snapshot: { timestamp: 'desc' }
-              },
-              take: 1
-            }
-          }
-        }
+    // Create cache key for this specific query
+    const cacheKey = CacheKeys.NAME_CHANGES(timeRange, page, limit, alliance, search);
+    
+    // Get cached data or fetch from database
+    const [totalChanges, changes] = await cacheService.cached(
+      cacheKey,
+      async () => {
+        const [totalCount, changesData] = await Promise.all([
+          prisma.nameChange.count({
+            where: whereClause
+          }),
+          prisma.nameChange.findMany({
+            where: whereClause,
+            include: {
+              player: {
+                include: {
+                  snapshots: {
+                    include: {
+                      snapshot: true
+                    },
+                    orderBy: {
+                      snapshot: { timestamp: 'desc' }
+                    },
+                    take: 1
+                  }
+                }
+              }
+            },
+            orderBy: {
+              [sortBy]: order
+            },
+            skip: (page - 1) * limit,
+            take: limit
+          })
+        ]);
+        return [totalCount, changesData];
       },
-      orderBy: {
-        [sortBy]: order
-      },
-      skip: (page - 1) * limit,
-      take: limit
-    });
+      { ttl: 180000, tags: [CacheTags.NAME_CHANGES, CacheTags.PLAYERS] } // Cache for 3 minutes
+    );
 
     // Apply alliance filter after fetching (since alliance is in snapshots)
     let filteredChanges = changes;
@@ -98,7 +112,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Calculate summary statistics
-    const summary = await calculateNameChangeSummary(startDate, endDate);
+    const summaryKey = `name-changes-summary:${timeRange}`;
+    const summary = await cacheService.cached(
+      summaryKey,
+      async () => calculateNameChangeSummary(startDate, endDate),
+      { ttl: 300000, tags: [CacheTags.NAME_CHANGES] } // Cache for 5 minutes
+    );
 
     // Format changes data
     const formattedChanges = filteredChanges.map((change: any) => {
@@ -125,15 +144,13 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil(totalChanges / limit);
 
-    return NextResponse.json({
-      changes: formattedChanges,
+    // Optimize response for large datasets
+    const optimizedData = optimizeForLargeDataset(formattedChanges, page, limit, totalChanges);
+    
+    const responseData = {
+      changes: optimizedData.data,
       summary,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalChanges,
-        limit
-      },
+      pagination: optimizedData.pagination,
       filters: {
         alliances: alliances.map((a: any) => a.allianceTag).filter(Boolean),
         timeRange: parseInt(timeRange),
@@ -141,8 +158,20 @@ export async function GET(request: NextRequest) {
         sortBy,
         order,
         search
+      },
+      performance: {
+        ...optimizedData.performance,
+        queryTime: timer.elapsed()
       }
+    };
+
+    const response = createOptimizedResponse(responseData, {
+      enableCaching: true,
+      cacheMaxAge: 180, // 3 minutes
+      enableETag: true
     });
+    
+    return timer.addTimingHeader(response);
 
   } catch (error) {
     console.error('Error fetching name changes:', error);
@@ -183,29 +212,34 @@ async function calculateNameChangeSummary(startDate: Date, endDate: Date) {
     take: 5
   });
 
-  // Get player details for most active changers
-  const playerDetails = await Promise.all(
-    mostActiveChangers.map(async (changer: any) => {
-      const player = await prisma.player.findUnique({
-        where: { lordId: changer.playerId },
-        include: {
-          snapshots: {
-            include: { snapshot: true },
-            orderBy: { snapshot: { timestamp: 'desc' } },
-            take: 1
-          }
-        }
-      });
-      
-      return {
-        playerId: changer.playerId,
-        playerName: player?.currentName || 'Unknown',
-        changeCount: changer._count.playerId,
-        currentPower: player?.snapshots[0] ? parseInt(player.snapshots[0].currentPower) : 0,
-        allianceTag: player?.snapshots[0]?.allianceTag || null
-      };
-    })
-  );
+  // Get player details for most active changers - FIXED N+1 QUERY ISSUE
+  const playerIds = mostActiveChangers.map(changer => changer.playerId);
+  const players = await prisma.player.findMany({
+    where: { lordId: { in: playerIds } },
+    include: {
+      snapshots: {
+        include: { snapshot: true },
+        orderBy: { snapshot: { timestamp: 'desc' } },
+        take: 1
+      }
+    }
+  });
+  
+  // Create a map for efficient lookup
+  const playerMap = new Map(players.map(player => [player.lordId, player]));
+  
+  // Build player details using the map
+  const playerDetails = mostActiveChangers.map((changer: any) => {
+    const player = playerMap.get(changer.playerId);
+    
+    return {
+      playerId: changer.playerId,
+      playerName: player?.currentName || 'Unknown',
+      changeCount: changer._count.playerId,
+      currentPower: player?.snapshots[0] ? parseInt(player.snapshots[0].currentPower) : 0,
+      allianceTag: player?.snapshots[0]?.allianceTag || null
+    };
+  });
 
   // Analyze name change patterns
   const recentChanges = await prisma.nameChange.findMany({

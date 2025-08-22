@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSeason } from '@/contexts/SeasonContext';
-// import { SeasonSelector } from '@/components/SeasonSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,7 @@ import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
-import { MeritTrendChart, AlliancePerformanceChart } from '@/components/charts';
+import { MeritTrendChart, MeritDistributionChart, MeritEfficiencyChart, TopPerformersChart } from '@/components/charts';
 import {
   Trophy,
   TrendingUp,
@@ -163,28 +162,7 @@ export default function MeritsPage() {
   const [hasMounted, setHasMounted] = useState(false);
   const [viewAmount, setViewAmount] = useState(10);
 
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (hasMounted) {
-      fetchMeritData();
-    }
-  }, [timeframe, selectedSeasonMode, selectedSeasonId, selectedAlliance, hasMounted]);
-
-  // Don't render until season context is loaded and component has mounted
-  if (seasonLoading || !hasMounted) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        </div>
-      </div>
-    );
-  }
-
-  const fetchMeritData = async () => {
+  const fetchMeritData = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ 
@@ -207,7 +185,28 @@ export default function MeritsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeframe, selectedSeasonMode, selectedSeasonId, selectedAlliance]);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (hasMounted) {
+      fetchMeritData();
+    }
+  }, [hasMounted, fetchMeritData]);
+
+  // Don't render until season context is loaded and component has mounted
+  if (seasonLoading || !hasMounted) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePlayerClick = (player: MeritPlayer) => {
     router.push(`/dashboard/player/${player.playerId}`);
@@ -563,11 +562,7 @@ export default function MeritsPage() {
         <TabsList className="bg-gray-800 w-full justify-start">
           <TabsTrigger value="core" className="flex items-center gap-2">
             <Trophy className="w-4 h-4" />
-            Core Metrics
-          </TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Advanced Analytics
+            Merit Analysis
           </TabsTrigger>
           <TabsTrigger value="growth" className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
@@ -588,79 +583,109 @@ export default function MeritsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Core Metrics */}
+        {/* Merit Analysis */}
         <TabsContent value="core">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {renderPlayerTable(
-              data?.topMerits || [],
-              'Top Total Merits',
-              Trophy,
-              (player) => ({
-                value: formatNumber(player.merits),
-                label: `${formatNumber(player.currentPower)} power`
-              })
-            )}
+          <div className="space-y-6">
+            {/* Visual Charts */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Top Performers Chart */}
+              <TopPerformersChart
+                meritLeaders={data?.topMerits?.map(player => ({
+                  name: player.currentName || player.name,
+                  alliance: player.allianceTag || '',
+                  merits: player.rawMerits || parseInt(player.merits) || 0,
+                  efficiency: player.meritPowerRatio || 0,
+                  percentile: player.meritPercentile || 0,
+                  kingdomRank: player.kingdomRank || 0
+                })) || []}
+                efficiencyLeaders={data?.topEfficiency?.map(player => ({
+                  name: player.currentName || player.name,
+                  alliance: player.allianceTag || '',
+                  merits: player.rawMerits || parseInt(player.merits) || 0,
+                  efficiency: player.meritPowerRatio || 0,
+                  percentile: player.meritPercentile || 0,
+                  kingdomRank: player.kingdomRank || 0
+                })) || []}
+                elitePlayers={data?.topPercentile?.map(player => ({
+                  name: player.currentName || player.name,
+                  alliance: player.allianceTag || '',
+                  merits: player.rawMerits || parseInt(player.merits) || 0,
+                  efficiency: player.meritPowerRatio || 0,
+                  percentile: player.meritPercentile || 0,
+                  kingdomRank: player.kingdomRank || 0
+                })) || []}
+                loading={loading}
+                showTop={15}
+              />
 
-            {renderPlayerTable(
-              data?.topEfficiency || [],
-              'Top Merit Efficiency',
-              Target,
-              (player) => ({
-                value: formatRatio(player.meritPowerRatio),
-                label: `${formatNumber(player.merits)} merits`
-              })
-            )}
+              {/* Merit Distribution */}
+              <MeritDistributionChart
+                data={data?.allianceAnalysis?.map(alliance => ({
+                  alliance: alliance.allianceTag,
+                  totalMerits: alliance.totalMerits,
+                  percentage: (alliance.totalMerits / (parseInt(data?.kingdomStats?.totalMerits) || 1)) * 100,
+                  memberCount: alliance.memberCount
+                })) || []}
+                loading={loading}
+                showTop={8}
+              />
+            </div>
 
+            {/* Merit Efficiency Scatter Plot */}
+            <MeritEfficiencyChart
+              data={[...(data?.topMerits || []), ...(data?.topEfficiency || [])]
+                .filter((player, index, arr) => 
+                  arr.findIndex(p => p.playerId === player.playerId) === index
+                )
+                .map(player => ({
+                  name: player.currentName || player.name,
+                  alliance: player.allianceTag || '',
+                  merits: player.rawMerits || parseInt(player.merits) || 0,
+                  power: player.rawPower || parseInt(player.currentPower) || 0,
+                  efficiency: player.meritPowerRatio || 0,
+                  percentile: player.meritPercentile || 0
+                }))
+              }
+              loading={loading}
+              showTop={100}
+            />
 
-            {renderPlayerTable(
-              data?.topPercentile || [],
-              'Kingdom Elite (Top Percentiles)',
-              Crown,
-              (player) => ({
-                value: `${formatDecimal(player.meritPercentile)}%`,
-                label: `Rank #${player.kingdomRank}`,
-                color: getPercentileColor(player.meritPercentile)
-              })
-            )}
+            {/* Traditional Tables */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {renderPlayerTable(
+                data?.topMerits || [],
+                'Top Total Merits',
+                Trophy,
+                (player) => ({
+                  value: formatNumber(player.merits),
+                  label: `${formatNumber(player.currentPower)} power`
+                })
+              )}
+
+              {renderPlayerTable(
+                data?.topEfficiency || [],
+                'Top Merit Efficiency',
+                Target,
+                (player) => ({
+                  value: formatRatio(player.meritPowerRatio),
+                  label: `${formatNumber(player.merits)} merits`
+                })
+              )}
+
+              {renderPlayerTable(
+                data?.topPercentile || [],
+                'Kingdom Elite (Top Percentiles)',
+                Crown,
+                (player) => ({
+                  value: `${formatDecimal(player.meritPercentile)}%`,
+                  label: `Rank #${player.kingdomRank}`,
+                  color: getPercentileColor(player.meritPercentile)
+                })
+              )}
+            </div>
           </div>
         </TabsContent>
 
-        {/* Advanced Analytics */}
-        <TabsContent value="advanced">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {renderPlayerTable(
-              data?.topDensity || [],
-              'Merit Density by Power',
-              Layers,
-              (player) => ({
-                value: formatDecimal(player.meritDensity),
-                label: `${player.powerTier}`,
-                color: getTierColor(player.powerTier)
-              })
-            )}
-
-            {renderPlayerTable(
-              data?.topROI || [],
-              'Merit ROI (Return on Investment)',
-              DollarSign,
-              (player) => ({
-                value: formatDecimal(player.meritROI),
-                label: `Per 1M power invested`
-              })
-            )}
-
-            {data?.topGrowth && data.topGrowth.length > 0 && renderPlayerTable(
-              data.topGrowth,
-              'Merit Gap Analysis',
-              MapPin,
-              (player) => ({
-                value: formatNumber(player.meritGap),
-                label: `to ${formatNumber(player.nextMilestone)}`
-              })
-            )}
-
-          </div>
-        </TabsContent>
 
         {/* Growth & Momentum */}
         <TabsContent value="growth">
@@ -912,23 +937,6 @@ export default function MeritsPage() {
         {/* Alliance Analysis */}
         <TabsContent value="alliances">
           <div className="space-y-6">
-            {/* Alliance Performance Chart */}
-            <AlliancePerformanceChart 
-              data={data?.allianceAnalysis?.map(alliance => ({
-                alliance: alliance.allianceTag,
-                totalMerits: alliance.totalMerits,
-                averageMerits: alliance.averageMerits,
-                memberCount: alliance.memberCount,
-                totalPower: 0, // Power data not available in current API
-                averagePower: 0, // Power data not available in current API
-                efficiency: alliance.averageMerits, // Use average merits as efficiency metric
-                rank: 0 // Will be calculated by rank
-              })) || []} 
-              loading={loading}
-              metric="totalMerits"
-              showTop={15}
-            />
-
             {data?.allianceAnalysis && data.allianceAnalysis.length > 0 && (
               <div className="grid grid-cols-1 gap-6">
                 {data.allianceAnalysis.slice(0, 10).map((alliance, index) => {
