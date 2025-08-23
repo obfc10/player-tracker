@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CombatEfficiencyMatrix } from '@/components/charts/CombatEfficiencyMatrix';
+import { CombatEfficiencyMatrix } from '../CombatEfficiencyMatrix';
 import { PlayerDetailCard } from '@/components/player-detail';
 
 export default function CombatEfficiencyPage() {
