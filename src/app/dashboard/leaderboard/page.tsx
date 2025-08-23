@@ -244,8 +244,8 @@ export default function LeaderboardPage() {
           });
         } else {
           // Filter out duplicates by lordId when appending
-          const existingIds = new Set(allEfficiencyData.map(p => p.lordId));
-          const newPlayers = data.data.filter(p => !existingIds.has(p.lordId));
+          const existingIds = new Set(allEfficiencyData.map((p: any) => p.lordId));
+          const newPlayers = data.data.filter((p: any) => !existingIds.has(p.lordId));
           const combinedData = [...allEfficiencyData, ...newPlayers];
           
           setAllEfficiencyData(combinedData);
