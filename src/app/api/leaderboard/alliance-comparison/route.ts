@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       const deaths = parseInt(playerSnapshot.unitsDead || '0');
 
       // Merit efficiency (merits per million power)
-      const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+      const meritEfficiency = power > 0 ? (merits / power) * 100 : 0;
       
       // Power efficiency (kills per million power)
       const powerEfficiency = power > 0 ? (kills / (power / 1000000)) : 0;
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
       const totalPower = players.reduce((sum, p) => sum + p.currentPower, 0);
       const averageMerits = players.length > 0 ? totalMerits / players.length : 0;
       const averagePower = players.length > 0 ? totalPower / players.length : 0;
-      const meritEfficiency = totalPower > 0 ? (totalMerits / (totalPower / 1000000)) : 0;
+      const meritEfficiency = totalPower > 0 ? (totalMerits / totalPower) * 100 : 0;
 
       // Get top performers (sorted by merits)
       const topPerformers = [...players]

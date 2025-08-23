@@ -80,6 +80,9 @@ interface LeaderboardTableProps {
   onAllianceFilter: (alliance: string) => void;
   onPageChange: (page: number) => void;
   onPlayerClick: (player: Player) => void;
+  selectedPlayers?: Set<string>;
+  onPlayerSelect?: (playerId: string, selected: boolean) => void;
+  showBulkActions?: boolean;
 }
 
 const columns = [
@@ -102,7 +105,10 @@ export function LeaderboardTable({
   onSort,
   onAllianceFilter,
   onPageChange,
-  onPlayerClick
+  onPlayerClick,
+  selectedPlayers = new Set(),
+  onPlayerSelect,
+  showBulkActions = false
 }: LeaderboardTableProps) {
   const [selectedColumns, setSelectedColumns] = useState(new Set(['rank', 'name', 'allianceTag', 'currentPower', 'merits', 'meritEfficiency']));
 
@@ -140,19 +146,19 @@ export function LeaderboardTable({
   const getPerformanceTierColor = (player: any) => {
     const power = player.currentPower || 0;
     const merits = player.merits || 0;
-    const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+    const meritEfficiency = power > 0 ? (merits / power) * 100 : 0;
     
     // Performance tiers based on merit efficiency
-    if (meritEfficiency >= 1.0) return 'text-green-400'; // Top 20%
-    if (meritEfficiency >= 0.5) return 'text-yellow-400'; // Middle 60%
+    if (meritEfficiency >= 0.1) return 'text-green-400'; // Top 20%
+    if (meritEfficiency >= 0.05) return 'text-yellow-400'; // Middle 60%
     return 'text-red-400'; // Bottom 20%
   };
 
   const isUnderperformer = (player: any) => {
     const power = player.currentPower || 0;
     const merits = player.merits || 0;
-    const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
-    return meritEfficiency < 0.5;
+    const meritEfficiency = power > 0 ? (merits / power) * 100 : 0;
+    return meritEfficiency < 0.05;
   };
 
   const calculateMeritEfficiency = (player: any) => {
@@ -273,6 +279,19 @@ export function LeaderboardTable({
             <table className="w-full">
               <thead className="bg-gray-900">
                 <tr>
+                  {showBulkActions && (
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300 w-12">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-600 bg-gray-700 text-purple-600"
+                        onChange={(e) => {
+                          data?.data.forEach(player => {
+                            onPlayerSelect?.(player.lordId, e.target.checked);
+                          });
+                        }}
+                      />
+                    </th>
+                  )}
                   {visibleColumns.map(column => {
                     const Icon = column.icon;
                     return (
@@ -312,8 +331,23 @@ export function LeaderboardTable({
                           : ''
                       } ${
                         isUnderperf ? 'bg-red-900/20 border-l-4 border-red-500' : ''
+                      } ${
+                        selectedPlayers.has(player.lordId) ? 'bg-purple-900/30' : ''
                       }`}
                     >
+                    {showBulkActions && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedPlayers.has(player.lordId)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            onPlayerSelect?.(player.lordId, e.target.checked);
+                          }}
+                          className="rounded border-gray-600 bg-gray-700 text-purple-600"
+                        />
+                      </td>
+                    )}
                     {visibleColumns.map(column => (
                       <td key={column.key} className="px-4 py-3 text-sm text-gray-300">
                         {column.key === 'rank' && (

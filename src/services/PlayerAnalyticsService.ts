@@ -537,8 +537,8 @@ export class PlayerAnalyticsService extends BaseService {
           const totalBattles = victories + defeats;
           const winRate = totalBattles > 0 ? (victories / totalBattles) * 100 : 0;
           
-          // Calculate merit efficiency (merits per million power)
-          const meritEfficiency = power > 0 ? (merits / (power / 1000000)) : 0;
+          // Calculate merit efficiency (merits per million power, scaled for reasonable ranges)
+          const meritEfficiency = power > 0 ? (merits / power) * 100 : 0;
           
           // Calculate power efficiency (kills per million power)
           const powerEfficiency = power > 0 ? (kills / (power / 1000000)) : 0;
@@ -675,6 +675,118 @@ export class PlayerAnalyticsService extends BaseService {
       },
       'getPowerDistribution',
       { allianceCount: allianceTags.length, snapshotId }
+    );
+  }
+
+  /**
+   * Get merit efficiency rankings for a specific snapshot
+   */
+  async getMeritEfficiencyRankings(snapshotId: string, options: {
+    allianceTag?: string;
+    limit?: number;
+    page?: number;
+  } = {}): Promise<{
+    players: Array<{
+      rank: number;
+      lordId: string;
+      name: string;
+      alliance: string;
+      power: number;
+      merits: number;
+      meritEfficiency: number;
+      performanceTier: 'top' | 'middle' | 'bottom';
+      isUnderperformer: boolean;
+      meritTrend: number[];
+    }>;
+    totalCount: number;
+    averageEfficiency: number;
+  }> {
+    this.validateRequired({ snapshotId }, ['snapshotId']);
+
+    return this.executeDbOperation(
+      async () => {
+        const { allianceTag, limit = 50, page = 1 } = options;
+        
+        // Build where clause
+        const whereClause: any = { snapshotId };
+        if (allianceTag && allianceTag !== 'all') {
+          whereClause.allianceTag = allianceTag;
+        }
+
+        // Get player snapshots with recent history for trends
+        const playerSnapshots = await prisma.playerSnapshot.findMany({
+          where: whereClause,
+          include: {
+            player: {
+              include: {
+                snapshots: {
+                  include: { snapshot: true },
+                  orderBy: { snapshot: { timestamp: 'desc' } },
+                  take: 5
+                }
+              }
+            }
+          }
+        });
+
+        // Calculate efficiency metrics
+        const playersWithEfficiency = playerSnapshots.map(snapshot => {
+          const power = this.parseNumericValue(snapshot.currentPower);
+          const merits = this.parseNumericValue(snapshot.merits);
+          const meritEfficiency = power > 0 ? (merits / power) * 100 : 0;
+
+          // Get recent merit trend
+          const recentSnapshots = snapshot.player.snapshots
+            .slice(0, 5)
+            .reverse();
+          const meritTrend = recentSnapshots.map(s => this.parseNumericValue(s.merits));
+
+          return {
+            lordId: snapshot.playerId,
+            name: snapshot.name,
+            alliance: snapshot.allianceTag || 'None',
+            power,
+            merits,
+            meritEfficiency,
+            meritTrend
+          };
+        });
+
+        // Sort by efficiency (descending)
+        playersWithEfficiency.sort((a, b) => b.meritEfficiency - a.meritEfficiency);
+
+        // Calculate performance tiers
+        const totalPlayers = playersWithEfficiency.length;
+        const top20Cutoff = Math.ceil(totalPlayers * 0.2);
+        const bottom20Cutoff = Math.ceil(totalPlayers * 0.8);
+
+        // Add ranking and performance tiers
+        const rankedPlayers = playersWithEfficiency.map((player, index) => ({
+          rank: index + 1,
+          ...player,
+          performanceTier: 
+            index < top20Cutoff ? 'top' as const :
+            index >= bottom20Cutoff ? 'bottom' as const : 'middle' as const,
+          isUnderperformer: player.meritEfficiency < 0.05
+        }));
+
+        // Apply pagination
+        const startIndex = (page - 1) * limit;
+        const paginatedPlayers = rankedPlayers.slice(startIndex, startIndex + limit);
+
+        // Calculate average efficiency
+        const averageEfficiency = playersWithEfficiency.length > 0 
+          ? playersWithEfficiency.reduce((sum, p) => sum + p.meritEfficiency, 0) / playersWithEfficiency.length
+          : 0;
+
+        return {
+          players: paginatedPlayers,
+          totalCount: playersWithEfficiency.length,
+          averageEfficiency
+        };
+      },
+      'getMeritEfficiencyRankings',
+      { snapshotId, options }
     );
   }
 

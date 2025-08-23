@@ -343,7 +343,7 @@ export async function GET(request: NextRequest) {
         ((victories / (victories + defeats)) * 100).toFixed(1) : 'N/A';
 
       // Calculate merit efficiency
-      const meritEfficiency = currentPower > 0 ? (merits / (currentPower / 1000000)) : 0;
+      const meritEfficiency = currentPower > 0 ? (merits / currentPower) * 100 : 0;
 
       const totalCombats = victories + defeats;
       const totalPowerBreakdown =

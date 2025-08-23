@@ -11,8 +11,10 @@ import { ExportConfigs } from '@/lib/export';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AllianceLeaderboard } from '@/components/leaderboard/AllianceLeaderboard';
 import { AllianceComparisonView } from '@/components/leaderboard/AllianceComparisonView';
+import { EfficiencyLeaderboard } from '@/components/leaderboard/EfficiencyLeaderboard';
 import { ALLIANCE_FILTER_OPTIONS, sortAlliancesByPriority } from '@/lib/alliance-config';
-import { Trophy, Shield, Users, Crown, RefreshCw, Swords } from 'lucide-react';
+import { useBulkActions } from '@/hooks/useBulkActions';
+import { Trophy, Shield, Users, Crown, RefreshCw, Swords, Download, FileBarChart } from 'lucide-react';
 
 interface Player {
   rank: number;
@@ -103,12 +105,16 @@ interface AllianceLeaderboardData {
 export default function LeaderboardPage() {
   const router = useRouter();
   const { selectedSeasonMode, selectedSeasonId } = useSeason();
+  const { isExporting, isGeneratingReport, exportSelectedPlayers, generatePerformanceReport } = useBulkActions();
   const [playerData, setPlayerData] = useState<LeaderboardData | null>(null);
+  const [efficiencyData, setEfficiencyData] = useState<any>(null);
   const [allianceData, setAllianceData] = useState<AllianceLeaderboardData | null>(null);
   const [comparisonData, setComparisonData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('players');
-  const [viewMode, setViewMode] = useState<'individual' | 'comparison'>('individual');
+  const [viewMode, setViewMode] = useState<'individual' | 'comparison' | 'efficiency'>('individual');
+  const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
+  const [showBulkActions, setShowBulkActions] = useState(false);
   
   // Player leaderboard state
   const [playerSortBy, setPlayerSortBy] = useState('currentPower');
@@ -120,17 +126,25 @@ export default function LeaderboardPage() {
   const [allianceSortBy, setAllianceSortBy] = useState('totalPower');
   const [allianceOrder, setAllianceOrder] = useState('desc');
 
+  // Efficiency leaderboard state
+  const [efficiencyAlliance, setEfficiencyAlliance] = useState('all');
+  const [efficiencyPage, setEfficiencyPage] = useState(1);
+  const [allEfficiencyData, setAllEfficiencyData] = useState<any[]>([]);
+  const [hasMoreEfficiency, setHasMoreEfficiency] = useState(true);
+
   useEffect(() => {
     if (activeTab === 'players') {
       if (viewMode === 'comparison') {
         fetchComparisonData();
+      } else if (viewMode === 'efficiency') {
+        fetchEfficiencyData();
       } else {
         fetchPlayerLeaderboard();
       }
     } else {
       fetchAllianceLeaderboard();
     }
-  }, [activeTab, viewMode, selectedSeasonMode, selectedSeasonId, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder]);
+  }, [activeTab, viewMode, selectedSeasonMode, selectedSeasonId, playerSortBy, playerOrder, selectedAlliance, currentPage, allianceSortBy, allianceOrder, efficiencyAlliance]);
 
 
   const fetchPlayerLeaderboard = async () => {
@@ -200,6 +214,56 @@ export default function LeaderboardPage() {
     }
   };
 
+  const fetchEfficiencyData = async (reset = true) => {
+    if (reset) {
+      setLoading(true);
+      setEfficiencyPage(1);
+      setAllEfficiencyData([]);
+      setHasMoreEfficiency(true);
+    }
+    
+    try {
+      const pageToFetch = reset ? 1 : efficiencyPage;
+      const params = new URLSearchParams({
+        alliance: efficiencyAlliance,
+        page: pageToFetch.toString(),
+        limit: '25',
+        seasonMode: selectedSeasonMode,
+        ...(selectedSeasonId && { seasonId: selectedSeasonId })
+      });
+
+      const response = await fetch(`/api/leaderboard/efficiency?${params}`);
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (reset) {
+          setAllEfficiencyData(data.data);
+          setEfficiencyData({
+            ...data,
+            data: data.data
+          });
+        } else {
+          // Filter out duplicates by lordId when appending
+          const existingIds = new Set(allEfficiencyData.map(p => p.lordId));
+          const newPlayers = data.data.filter(p => !existingIds.has(p.lordId));
+          const combinedData = [...allEfficiencyData, ...newPlayers];
+          
+          setAllEfficiencyData(combinedData);
+          setEfficiencyData({
+            ...data,
+            data: combinedData
+          });
+        }
+        
+        setHasMoreEfficiency(data.pagination.hasNextPage);
+      }
+    } catch (error) {
+      console.error('Error fetching efficiency data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePlayerSort = (metric: string) => {
     if (playerSortBy === metric) {
       setPlayerOrder(playerOrder === 'asc' ? 'desc' : 'asc');
@@ -228,7 +292,7 @@ export default function LeaderboardPage() {
     setCurrentPage(page);
   };
 
-  const handlePlayerClick = (player: Player) => {
+  const handlePlayerClick = (player: Player | any) => {
     // Navigate to player detail page
     router.push(`/dashboard/player/${player.lordId}`);
   };
@@ -238,6 +302,57 @@ export default function LeaderboardPage() {
     setActiveTab('players');
     setSelectedAlliance(alliance.tag);
     setCurrentPage(1);
+  };
+
+  const handlePlayerSelect = (playerId: string, selected: boolean) => {
+    const newSelected = new Set(selectedPlayers);
+    if (selected) {
+      newSelected.add(playerId);
+    } else {
+      newSelected.delete(playerId);
+    }
+    setSelectedPlayers(newSelected);
+  };
+
+  const handleEfficiencyAllianceFilter = (alliance: string) => {
+    setEfficiencyAlliance(alliance);
+    // This will trigger a useEffect to refetch data
+  };
+  
+  // Separate effect for efficiency alliance changes
+  useEffect(() => {
+    if (viewMode === 'efficiency' && activeTab === 'players') {
+      fetchEfficiencyData(true);
+    }
+  }, [efficiencyAlliance]);
+
+  const handleLoadMoreEfficiency = async () => {
+    if (!hasMoreEfficiency || loading) return;
+    
+    const nextPage = efficiencyPage + 1;
+    setEfficiencyPage(nextPage);
+    await fetchEfficiencyData(false);
+  };
+
+  const handleBulkExport = async () => {
+    try {
+      await exportSelectedPlayers(Array.from(selectedPlayers), {
+        format: 'detailed',
+        includeHistory: false
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      // You could add a toast notification here
+    }
+  };
+
+  const handleBulkReport = async () => {
+    try {
+      await generatePerformanceReport(Array.from(selectedPlayers));
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      // You could add a toast notification here
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -253,6 +368,8 @@ export default function LeaderboardPage() {
     if (activeTab === 'players') {
       if (viewMode === 'comparison') {
         fetchComparisonData();
+      } else if (viewMode === 'efficiency') {
+        fetchEfficiencyData();
       } else {
         fetchPlayerLeaderboard();
       }
@@ -404,23 +521,82 @@ export default function LeaderboardPage() {
 
       {/* View Mode Toggle */}
       {activeTab === 'players' && (
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <Button
-            variant={viewMode === 'individual' ? 'default' : 'outline'}
-            onClick={() => setViewMode('individual')}
-            className="flex items-center gap-2"
-          >
-            <Users className="w-4 h-4" />
-            Individual Rankings
-          </Button>
-          <Button
-            variant={viewMode === 'comparison' ? 'default' : 'outline'}
-            onClick={() => setViewMode('comparison')}
-            className="flex items-center gap-2"
-          >
-            <Swords className="w-4 h-4" />
-            Alliance Comparison
-          </Button>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant={viewMode === 'individual' ? 'default' : 'outline'}
+              onClick={() => setViewMode('individual')}
+              className="flex items-center gap-2"
+            >
+              <Users className="w-4 h-4" />
+              Individual Rankings
+            </Button>
+            <Button
+              variant={viewMode === 'efficiency' ? 'default' : 'outline'}
+              onClick={() => setViewMode('efficiency')}
+              className="flex items-center gap-2"
+            >
+              <Trophy className="w-4 h-4" />
+              Merit Efficiency
+            </Button>
+            <Button
+              variant={viewMode === 'comparison' ? 'default' : 'outline'}
+              onClick={() => setViewMode('comparison')}
+              className="flex items-center gap-2"
+            >
+              <Swords className="w-4 h-4" />
+              Alliance Comparison
+            </Button>
+          </div>
+          
+          {/* Bulk Actions */}
+          {(viewMode === 'individual' || viewMode === 'efficiency') && (
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBulkActions(!showBulkActions)}
+                className="flex items-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                {showBulkActions ? 'Hide' : 'Show'} Bulk Actions
+              </Button>
+              {showBulkActions && selectedPlayers.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">
+                    {selectedPlayers.size} selected
+                  </span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleBulkExport}
+                    disabled={isExporting}
+                    className="flex items-center gap-1"
+                  >
+                    <Download className="w-4 h-4" />
+                    {isExporting ? 'Exporting...' : 'Export Selected'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleBulkReport}
+                    disabled={isGeneratingReport}
+                    className="flex items-center gap-1"
+                  >
+                    <FileBarChart className="w-4 h-4" />
+                    {isGeneratingReport ? 'Generating...' : 'Generate Report'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setSelectedPlayers(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -447,6 +623,21 @@ export default function LeaderboardPage() {
               onAllianceFilter={handleAllianceFilter}
               onPageChange={handlePageChange}
               onPlayerClick={handlePlayerClick}
+              selectedPlayers={selectedPlayers}
+              onPlayerSelect={handlePlayerSelect}
+              showBulkActions={showBulkActions}
+            />
+          ) : viewMode === 'efficiency' ? (
+            <EfficiencyLeaderboard
+              data={efficiencyData}
+              loading={loading}
+              selectedPlayers={selectedPlayers}
+              onAllianceFilter={handleEfficiencyAllianceFilter}
+              onLoadMore={handleLoadMoreEfficiency}
+              hasMore={hasMoreEfficiency}
+              onPlayerClick={handlePlayerClick}
+              onPlayerSelect={handlePlayerSelect}
+              showBulkActions={showBulkActions}
             />
           ) : (
             <AllianceComparisonView
