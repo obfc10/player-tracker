@@ -56,6 +56,7 @@ export default function PlayersPage() {
   const [selectedAlliance, setSelectedAlliance] = useState('all');
   const [sortColumn, setSortColumn] = useState<keyof PlayerData>('currentPower');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   // Column definitions for all 39 fields
@@ -189,6 +190,28 @@ export default function PlayersPage() {
     router.push(`/dashboard/player/${lordId}`);
   };
 
+  const handlePlayerSelect = (lordId: string, checked: boolean) => {
+    const newSelection = new Set(selectedPlayers);
+    if (checked) {
+      newSelection.add(lordId);
+    } else {
+      newSelection.delete(lordId);
+    }
+    setSelectedPlayers(newSelection);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPlayers(new Set(filteredPlayers.map(p => p.lordId)));
+    } else {
+      setSelectedPlayers(new Set());
+    }
+  };
+
+  const getSelectedPlayersData = () => {
+    return filteredPlayers.filter(player => selectedPlayers.has(player.lordId));
+  };
+
   const formatNumber = (value: string | number): string => {
     if (typeof value === 'string') {
       const num = parseInt(value);
@@ -210,25 +233,38 @@ export default function PlayersPage() {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-white">Players Database</h1>
-          <ExportButton
-            data={filteredPlayers.map(player => ({
-              name: player.name,
-              alliance: player.allianceTag,
-              power: parseInt(player.currentPower || '0'),
-              killPoints: parseInt(player.merits || '0'),
-              level: player.cityLevel,
-              vipLevel: 0, // Not available in current data
-              might: parseInt(player.power || '0'),
-              troopKills: parseInt(player.unitsKilled || '0'),
-              deads: parseInt(player.unitsDead || '0'),
-              rss_assistance_given: parseInt(player.resourcesGiven || '0'),
-              rss_assistance_received: 0 // Not available in current data
-            }))}
-            exportConfig={ExportConfigs.players}
-            filename={`players_export_${new Date().toISOString().split('T')[0]}`}
-            title="Kingdom 671 - Players Database"
-            subtitle={`Export generated on ${new Date().toLocaleDateString()} | ${filteredPlayers.length} players`}
-          />
+          <div className="flex gap-2">
+            {selectedPlayers.size > 0 && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-600 rounded-md text-sm text-white">
+                {selectedPlayers.size} selected
+                <button
+                  onClick={() => setSelectedPlayers(new Set())}
+                  className="ml-2 text-blue-200 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+            <ExportButton
+              data={(selectedPlayers.size > 0 ? getSelectedPlayersData() : filteredPlayers).map(player => ({
+                name: player.name,
+                alliance: player.allianceTag,
+                power: parseInt(player.currentPower || '0'),
+                killPoints: parseInt(player.merits || '0'),
+                level: player.cityLevel,
+                vipLevel: 0, // Not available in current data
+                might: parseInt(player.power || '0'),
+                troopKills: parseInt(player.unitsKilled || '0'),
+                deads: parseInt(player.unitsDead || '0'),
+                rss_assistance_given: parseInt(player.resourcesGiven || '0'),
+                rss_assistance_received: 0 // Not available in current data
+              }))}
+              exportConfig={ExportConfigs.players}
+              filename={`players_export_${new Date().toISOString().split('T')[0]}`}
+              title="Kingdom 671 - Players Database"
+              subtitle={`Export generated on ${new Date().toLocaleDateString()} | ${selectedPlayers.size > 0 ? selectedPlayers.size + ' selected' : filteredPlayers.length} players`}
+            />
+          </div>
         </div>
         
         {/* Filters */}
@@ -272,6 +308,14 @@ export default function PlayersPage() {
           <table className="w-full">
             <thead className="bg-gray-900 sticky top-0 z-10">
               <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={selectedPlayers.size === filteredPlayers.length && filteredPlayers.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                  />
+                </th>
                 {columns.map(column => (
                   <th
                     key={column.key}
@@ -294,17 +338,28 @@ export default function PlayersPage() {
               {filteredPlayers.map(player => (
                 <tr
                   key={player.lordId}
-                  onClick={() => openPlayerCard(player.lordId)}
-                  className={`cursor-pointer transition-colors hover:bg-gray-700 ${
+                  className={`transition-colors hover:bg-gray-700 ${
                     player.allianceTag && isManagedAlliance(player.allianceTag) 
                       ? 'ring-1 ring-yellow-400/30 bg-gray-800/50' 
                       : ''
                   }`}
                 >
+                  <td className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={selectedPlayers.has(player.lordId)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handlePlayerSelect(player.lordId, e.target.checked);
+                      }}
+                      className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
+                    />
+                  </td>
                   {columns.map(column => (
                     <td
                       key={column.key}
-                      className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap"
+                      onClick={() => openPlayerCard(player.lordId)}
+                      className="px-4 py-3 text-sm text-gray-300 whitespace-nowrap cursor-pointer"
                     >
                       {column.key === 'allianceTag' ? (
                         player.allianceTag ? (
