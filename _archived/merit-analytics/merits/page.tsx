@@ -10,7 +10,10 @@ import { ExportButton } from '@/components/ui/export-button';
 import { ExportConfigs } from '@/lib/export';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ALLIANCE_FILTER_OPTIONS, getManagedAllianceColor, isManagedAlliance, sortAlliancesByPriority } from '@/lib/alliance-config';
-import { MeritTrendChart, MeritDistributionChart, MeritEfficiencyChart, TopPerformersChart } from '@/components/charts';
+import { MeritTrendChart } from '../MeritTrendChart';
+import { MeritDistributionChart } from '../MeritDistributionChart';
+import { MeritEfficiencyChart } from '../MeritEfficiencyChart';
+import { TopPerformersChart } from '@/components/charts/TopPerformersChart';
 import {
   Trophy,
   TrendingUp,
