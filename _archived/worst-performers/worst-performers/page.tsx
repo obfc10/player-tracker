@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { WorstPerformersTracker } from '@/components/business/WorstPerformersTracker';
+import { WorstPerformersTracker } from '../WorstPerformersTracker';
 import { PlayerDetailDto } from '@/types/dto';
 import { getManagedAllianceTags } from '@/lib/alliance-config';
 
