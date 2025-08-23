@@ -81,9 +81,9 @@ export default function UploadPage() {
         // Refresh upload history
         setRefreshTrigger(prev => prev + 1);
         
-        // Redirect to overview after success
+        // Redirect to players after success
         setTimeout(() => {
-          router.push('/dashboard/overview');
+          router.push('/dashboard/players');
         }, 3000);
       } else {
         setResult({

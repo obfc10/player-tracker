@@ -10,34 +10,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // Initialize error tracking
     errorTracker.logInfo('Providers', 'Application initialized');
     
-    logInfo('Providers', 'SessionProvider mounted', {
-      windowLocation: window.location.href,
-      nextAuthUrl: process.env.NEXTAUTH_URL
+    logInfo('Providers', 'NextAuth SessionProvider mounted', {
+      windowLocation: window.location.href
     });
     
-    // Check if session storage has any auth data
-    const sessionData = typeof window !== 'undefined' ? window.sessionStorage.getItem('next-auth.session-token') : null;
-    
-    // Check cookies for session
+    // Check if nextauth session exists
     const cookies = document.cookie.split(';').map(c => c.trim());
-    const sessionCookie = cookies.find(c => c.startsWith('next-auth.session-token'));
+    const nextAuthSession = cookies.find(c => c.startsWith('next-auth.session-token'));
     
     // Log session info to both error tracker and logger
     const sessionInfo = {
-      hasSessionStorage: !!sessionData,
-      hasSessionCookie: !!sessionCookie,
+      hasNextAuthSession: !!nextAuthSession,
       url: window.location.href,
     };
     
-    errorTracker.logInfo('Providers.session', 'Session check', sessionInfo);
-    logInfo('Providers', 'Session check completed', sessionInfo);
+    errorTracker.logInfo('Providers.nextauth', 'NextAuth session check', sessionInfo);
+    logInfo('Providers', 'NextAuth session check completed', sessionInfo);
   }, []);
   
   return (
-    <SessionProvider
-      refetchInterval={0}
-      refetchOnWindowFocus={true}
-    >
+    <SessionProvider>
       {children}
     </SessionProvider>
   );

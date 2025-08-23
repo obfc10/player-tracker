@@ -7,7 +7,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { SeasonProvider } from '@/contexts/SeasonContext';
 import {
-  LayoutDashboard,
   Users,
   TrendingUp,
   Trophy,
@@ -20,11 +19,8 @@ import {
   UserCheck,
   UserX,
   UserPlus,
-  Award,
   Calendar,
   Shield,
-  AlertTriangle,
-  Target
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -46,15 +42,13 @@ export default function DashboardLayout({
   }, [session, status, router]);
 
   const navigation = [
-    { name: 'Overview', href: '/dashboard/overview', icon: LayoutDashboard },
     { name: 'Alliance Dashboard', href: '/dashboard/alliance', icon: Shield },
-    { name: 'Players', href: '/dashboard/players', icon: Users },
-    { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp },
     { name: 'Leaderboard', href: '/dashboard/leaderboard', icon: Trophy },
-    { name: 'Combat Efficiency', href: '/dashboard/combat-efficiency', icon: Target },
-    { name: 'Merit Analytics', href: '/dashboard/merits', icon: Award },
-    { name: 'Worst Performers', href: '/dashboard/worst-performers', icon: AlertTriangle },
     { name: 'Changes', href: '/dashboard/changes', icon: BarChart3 },
+    { name: 'Progress', href: '/dashboard/progress', icon: TrendingUp }
+  ];
+
+  const playerChangesNavigation = [
     { name: 'Alliance Moves', href: '/dashboard/alliance-moves', icon: GitBranch },
     { name: 'Name Changes', href: '/dashboard/name-changes', icon: UserCheck },
     { name: 'Joined Realm', href: '/dashboard/joined-realm', icon: UserPlus },
@@ -62,6 +56,7 @@ export default function DashboardLayout({
   ];
 
   const adminNavigation = [
+    { name: 'Players', href: '/dashboard/players', icon: Users },
     { name: 'Upload Data', href: '/dashboard/upload', icon: Upload },
     { name: 'Manage Users', href: '/dashboard/admin/users', icon: UserCheck },
     { name: 'Manage Seasons', href: '/dashboard/admin/seasons', icon: Calendar }
@@ -115,6 +110,34 @@ export default function DashboardLayout({
           {/* Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                    ${isActive 
+                      ? 'bg-gray-900 text-white' 
+                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
+                    ${!sidebarOpen ? 'justify-center' : ''}
+                  `}
+                  title={!sidebarOpen ? item.name : undefined}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className={`ml-3 transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+                    {item.name}
+                  </span>
+                </Link>
+              );
+            })}
+
+            {/* Player Changes Section */}
+            <div className="my-4 border-t border-gray-700" />
+            <div className={`px-2 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider transition-opacity duration-300 ${!sidebarOpen && 'opacity-0 w-0 overflow-hidden'}`}>
+              Player Changes
+            </div>
+            {playerChangesNavigation.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
@@ -202,14 +225,10 @@ export default function DashboardLayout({
             <div className="flex items-center gap-6">
               <h2 className="text-lg font-semibold text-white">
                 {(() => {
-                  if (pathname === '/dashboard/overview') return 'Kingdom Overview';
                   if (pathname === '/dashboard/alliance') return 'Alliance Dashboard';
                   if (pathname === '/dashboard/players') return 'Player Database';
                   if (pathname === '/dashboard/progress') return 'Progress Tracking';
                   if (pathname === '/dashboard/leaderboard') return 'Leaderboards';
-                  if (pathname === '/dashboard/combat-efficiency') return 'Combat Efficiency Matrix';
-                  if (pathname === '/dashboard/merits') return 'Merit Analytics';
-                  if (pathname === '/dashboard/worst-performers') return 'Worst Performers Tracker';
                   if (pathname === '/dashboard/changes') return 'Change Analysis';
                   if (pathname === '/dashboard/alliance-moves') return 'Alliance Moves';
                   if (pathname === '/dashboard/name-changes') return 'Name Changes';

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlayerProgressChart } from '@/components/charts';
+import { PlayerProgressChart } from '@/components/charts/PlayerProgressChart';
 
 interface OverviewTabProps {
   stats: any;

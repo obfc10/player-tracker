@@ -1,6 +1,6 @@
 'use client';
 
-import { CombatEfficiencyMatrix } from '@/components/charts';
+import { CombatEfficiencyMatrix } from '@/components/charts/CombatEfficiencyMatrix';
 
 export default function TestComponentPage() {
   const handlePlayerClick = (playerId: string) => {
